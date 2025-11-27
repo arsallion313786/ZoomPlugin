@@ -18,7 +18,6 @@
         </config-file>
 
         <config-file target="AndroidManifest.xml" parent="/*">
-            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.READ_PHONE_STATE" />
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -35,12 +34,15 @@
             <uses-permission android:name="android.permission.CALL_PHONE" />
             <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+            <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
         </config-file>
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <activity
                 android:name="cordova.plugin.zoomvideo.SessionActivity"
                 android:supportsPictureInPicture="true"
-                android:configChanges="orientation|screenSize"
+                android:configChanges="smallestScreenSize|screenSize|screenLayout|orientation"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             </activity>
         </config-file>
@@ -54,23 +56,64 @@
         <resource-file src="src/android/res/drawable/ic_videocam_green_24px.xml" target="res/drawable/ic_videocam_green_24px.xml" />
         <resource-file src="src/android/res/drawable/ic_videocam_off_red_24px.xml" target="res/drawable/ic_videocam_off_red_24px.xml" />
         <resource-file src="src/android/res/drawable/ic_volume_down_green_24px.xml" target="res/drawable/ic_volume_down_green_24px.xml" />
-        <resource-file src="src/android/res/drawable/ic_volume_down_white_24px.xml" target="res/drawable/ic_volume_down_white_24px.xml" />
+        <resource-file src="src/android/res/drawable/bg_doctor_name_timer_layout.xml" target="res/drawable/bg_doctor_name_timer_layout.xml" />
+        <resource-file src="src/android/res/drawable/bg_video_control_layout.xml" target="res/drawable/bg_video_control_layout.xml" />
+        <resource-file src="src/android/res/drawable/icon_call_end.xml" target="res/drawable/icon_call_end.xml" />
+        <resource-file src="src/android/res/drawable/icon_camera.xml" target="res/drawable/icon_camera.xml" />
+        <resource-file src="src/android/res/drawable/icon_chat.xml" target="res/drawable/icon_chat.xml" />
+        <resource-file src="src/android/res/drawable/icon_cross_camera.xml" target="res/drawable/icon_cross_camera.xml" />
+        <resource-file src="src/android/res/drawable/icon_microphone.xml" target="res/drawable/icon_microphone.xml" />
+        <resource-file src="src/android/res/drawable/icon_mute_cross.xml" target="res/drawable/icon_mute_cross.xml" />
+        <resource-file src="src/android/res/drawable/icon_swtich_camera.xml" target="res/drawable/icon_swtich_camera.xml" />
+        <resource-file src="src/android/res/drawable/ic_volume_off.xml" target="res/drawable/ic_volume_off.xml" />
+        <resource-file src="src/android/res/drawable/ic_volume_on.xml" target="res/drawable/ic_volume_on.xml" />
+        <resource-file src="src/android/res/drawable/ic_microphone_icon.xml" target="res/drawable/ic_microphone_icon.xml" />
+        <resource-file src="src/android/res/drawable/ic_switch_camera_icon_circle_arrow.xml" target="res/drawable/ic_switch_camera_icon_circle_arrow.xml" />
+        
+        
+
 
         <resource-file src="src/android/res/layout/activity_video.xml" target="res/layout/activity_video.xml" />
         <resource-file src="src/android/res/layout/content_video.xml" target="res/layout/content_video.xml" />
+        <resource-file src="src/android/res/layout/doctor_name_timer.xml" target="res/layout/doctor_name_timer.xml" />
+        <resource-file src="src/android/res/layout/chat_popup_window.xml" target="res/layout/chat_popup_window.xml" />
+        <resource-file src="src/android/res/layout/item_chat_message.xml" target="res/layout/item_chat_message.xml" />
+        <resource-file src="src/android/res/layout/video_controls_layout.xml" target="res/layout/video_controls_layout.xml" />
       
-        <resource-file src="src/android/res/values/colors.xml" target="res/values/twilio_colors.xml" />
+        <resource-file src="src/android/res/values/twilio_colors.xml" target="res/values/twilio_colors.xml" />
+        <resource-file src="src/android/res/values/colors.xml" target="res/values/colors.xml" />
         <resource-file src="src/android/res/values/dimens.xml" target="res/values/dimens.xml" />
         <resource-file src="src/android/res/values/strings.xml" target="res/values/strings.xml" />
         <resource-file src="src/android/res/values/styles.xml" target="res/values/styles.xml" />
+        <resource-file src="src/android/res/values/themes.xml" target="res/values/themes.xml" />
+        
 
         <resource-file src="src/android/res/values-v21/styles.xml" target="res/values-v21/styles.xml" />
         <resource-file src="src/android/res/values-w820dp/dimens.xml" target="res/values-w820dp/dimens.xml" />
 
         <source-file src="src/android/SessionActivity.java" target-dir="src/cordova/plugin/zoomvideo" />
         <source-file src="src/android/ZoomVideo.java" target-dir="src/cordova/plugin/zoomvideo" />
+        <source-file src="src/android/BottomSheetChat.java" target-dir="src/cordova/plugin/zoomvideo" />
+        <source-file src="src/android/ChatAdapter.java" target-dir="src/cordova/plugin/zoomvideo" />
+        <source-file src="src/android/ChatMessage.java" target-dir="src/cordova/plugin/zoomvideo" />
+<!--        <source-file src="src/android/proguard-rules.pro" target-dir="" />-->
+<!--        //-->
+        
+        
+<!--        <hook type="before_plugin_uninstall" src="android_hooks/before_plugin_uninstall.js" />-->
 
-        <framework src="src/android/zoomvideo.gradle" type="gradleReference" custom="true" />
+        <lib-file src="src/android/mobilertc.aar" />
+        <framework src="src/android/zoomplugin.gradle" custom="true" type="gradleReference"/>
+        <framework src="androidx.appcompat:appcompat:1.7.0" />
+        <framework src="androidx.core:core-splashscreen:1.0.1" />
+        <framework src="androidx.constraintlayout:constraintlayout:2.1.4" />
+        <framework src="com.google.android.material:material:1.5.0" />
+        <framework src="androidx.security:security-crypto:1.1.0-alpha03" />
+        <framework src="com.google.crypto.tink:tink-android:1.5.0" />
+        <framework src="androidx.appcompat:appcompat:1.3.0" />
+        <source-file src="src/android/mobilertc.aar" target-dir="libs" />
+<!--        <hook type="after_plugin_install" src="android_hooks/after_plugin_install.js" />-->
+<!--        <framework src="android_hooks/zoomvideo.gradle" type="gradleReference" custom="true" />-->
     </platform>
     
     
@@ -91,13 +134,23 @@
         <source-file src="src/ios/ConsulationMeetingVC.swift" />
         <source-file src="src/ios/SDKPiPHelper.swift" />
         <source-file src="src/ios/SDKPiPWindowView.swift" />
+        <source-file src="src/ios/ZoomAlert.swift"/>
+        <source-file src="src/ios/ZoomImagePickerControllerHelper.swift"/>
+        <source-file src="src/ios/ActiveBuilder.swift"/>
+        <source-file src="src/ios/ActiveLabel.swift"/>
+        <source-file src="src/ios/ActiveType.swift"/>
+        <source-file src="src/ios/RegexParser.swift"/>
+        <source-file src="src/ios/StringTrimExtension.swift"/>
+        <source-file src="src/ios/FilewPreviewVC.swift"/>
+        <source-file src="src/ios/debounce.swift"/>
+        <source-file src="src/ios/delay.swift"/>
+        <source-file src="src/ios/throttle.swift"/>
+        <source-file src="src/ios/Throttler.swift"/>
+        <source-file src="src/ios/ScreenProtectorKit.swift"/>
 
         <config-file parent="ENABLE_BITCODE" target="build.xcconfig">
             <false/>
         </config-file>
-
-        
-        
 
         <preference name="CAMERA_USAGE_DESCRIPTION" default="Required to allow video call functionality" />
         <config-file target="*-Info.plist" parent="NSCameraUsageDescription">
@@ -220,9 +273,28 @@
         <resource-file src="src/ios/Resources/video_enable_icon@3x.png" target="Resources/video_enable_icon@3x.png" />
         
         
-        <resource-file src="src/ios/Resources/video_disable_icon.png" target="Resources/video_disable_icon.png" />
-        <resource-file src="src/ios/Resources/video_disable_icon@2x.png" target="Resources/video_disable_icon@2x.png" />
-        <resource-file src="src/ios/Resources/video_disable_icon@3x.png" target="Resources/video_disable_icon@3x.png" />
+        <resource-file src="src/ios/Resources/camera_off_white.png" target="Resources/camera_off_white.png" />
+        <resource-file src="src/ios/Resources/camera_off_white@2x.png" target="Resources/camera_off_white@2x.png" />
+        <resource-file src="src/ios/Resources/camera_off_white@3x.png" target="Resources/camera_off_white@3x.png" />
+        
+        
+        <resource-file src="src/ios/Resources/speaker_off.png" target="Resources/speaker_off.png" />
+        <resource-file src="src/ios/Resources/speaker_off@2x.png" target="Resources/speaker_off@2x.png" />
+        <resource-file src="src/ios/Resources/speaker_off@3x.png" target="Resources/speaker_off@3x.png" />
+        
+        
+        <resource-file src="src/ios/Resources/speaker_on.png" target="Resources/speaker_on.png" />
+        <resource-file src="src/ios/Resources/speaker_on@2x.png" target="Resources/speaker_on@2x.png" />
+        <resource-file src="src/ios/Resources/speaker_on@3x.png" target="Resources/speaker_on@3x.png" />
+        
+        <resource-file src="src/ios/Resources/switch_camera_circle.png" target="Resources/switch_camera_circle.png" />
+        <resource-file src="src/ios/Resources/switch_camera_circle@2x.png" target="Resources/switch_camera_circle@2x.png" />
+        <resource-file src="src/ios/Resources/switch_camera_circle@3x.png" target="Resources/switch_camera_circle@3x.png" />
+        
+        
+        <resource-file src="src/ios/Resources/head_phone_blue.png" target="Resources/head_phone_blue.png" />
+        <resource-file src="src/ios/Resources/head_phone_blue@2x.png" target="Resources/head_phone_blue@2x.png" />
+        <resource-file src="src/ios/Resources/head_phone_blue@3x.png" target="Resources/head_phone_blue@3x.png" />
         
         
         <resource-file src="src/ios/Resources/Montserrat-Black.ttf" target="Resources/Montserrat-Black.ttf" />

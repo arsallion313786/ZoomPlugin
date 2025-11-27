@@ -7,6 +7,7 @@
 
 import UIKit
 import ZoomVideoSDK
+import AVFoundation
 
 class SDKPiPWindowView: UIView {
     
@@ -67,4 +68,18 @@ class SDKPiPWindowView: UIView {
         self.cancelPreviousSubscription();
     }
     
+    
+    func setSpeakerStates(enabled: Bool)
+    {
+        let session = AVAudioSession.sharedInstance()
+        var _: Error?
+//        try? session.setCategory(AVAudioSession.Category.playAndRecord)
+//        try? session.setMode(AVAudioSession.Mode.voiceChat)
+        if enabled {
+            try? session.overrideOutputAudioPort(AVAudioSession.PortOverride.speaker)
+        } else {
+            try? session.overrideOutputAudioPort(AVAudioSession.PortOverride.none)
+        }
+        try? session.setActive(true)
+    }
 }

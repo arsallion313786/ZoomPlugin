@@ -56,7 +56,7 @@ class SDKPiPHelper: NSObject,AVPictureInPictureControllerDelegate {
     }
     
     class func isPiPSupported() -> Bool{
-        var isInCall = CallKitManager.shared().isInCall();
+        let isInCall = CallKitManager.shared().isInCall();
         return AVPictureInPictureController.isPictureInPictureSupported() && isInCall;
     }
     
@@ -75,10 +75,11 @@ class SDKPiPHelper: NSObject,AVPictureInPictureControllerDelegate {
         
         pipVideoView = SDKPiPWindowView(frame: defRect);
         pipVideoView.translatesAutoresizingMaskIntoConstraints = true;
+        ScreenShield.shared.protect(view: self.pipVideoCallViewCtrl.view)
         
         pipVideoCallViewCtrl.view.addSubview(pipVideoView);
         
-        
+         
         
         pipVideoCallViewCtrl!.preferredContentSize = CGSizeMake(pipVideoView.frame.size.width, pipVideoView.frame.size.height);
         

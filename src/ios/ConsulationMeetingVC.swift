@@ -11,6 +11,7 @@ import ReplayKit
 import AudioToolbox
 
 
+@available(iOS 13.0, *)
 class ConsulationMeetingVC: BupaBaseVC {
     
     @IBOutlet private weak var bottomActionView:UIView!
@@ -18,9 +19,10 @@ class ConsulationMeetingVC: BupaBaseVC {
     @IBOutlet private weak var lblWaitingMsg:UILabel!
     
     @IBOutlet private weak var otherUserPlaceHolderIcon:UIImageView!
+    @IBOutlet private weak var otherUserBGView:UIView!
     @IBOutlet private weak var meUserPlaceHolderIcon:UIImageView!
     
-    
+    @IBOutlet private weak var noCameraPlaceholderIconBtn:UIButton!
     
     @IBOutlet private weak var containerZoomView:UIView!
     
@@ -33,6 +35,7 @@ class ConsulationMeetingVC: BupaBaseVC {
     @IBOutlet private weak var btnChatIcon:UIButton!
     
     @IBOutlet private weak var thumbnailView:ZoomView!
+    @IBOutlet private weak var thumbnailPlaceHolderView:UIView!
     
     //According to Design these btn are not included
     @IBOutlet private weak var btnSpeakerIcon:UIButton!
@@ -49,11 +52,17 @@ class ConsulationMeetingVC: BupaBaseVC {
     @IBOutlet private weak var lblTitleSnackbar:UILabel!
     
     
+    var fileSelectedListner :((_ data:[String: Any]?, _ error:String?)->Void)?
+    var fileDownloadListener :((_ data:[String: Any]?, _ error:String?)->Void)?
+    
+    
     
     private var timer:Timer!
     private var chatVc:ZoomChatVC?
     private var arrChatMessages:[ZoomVideoSDKChatMessage] = [ZoomVideoSDKChatMessage]();
     private var isSpeakerOn = true;
+    private var isUserInteractAudioOption = false;
+    private var isSessionStarted = false;
     
     
     
@@ -61,110 +70,177 @@ class ConsulationMeetingVC: BupaBaseVC {
     var sharedExrensionAppBundleId:String?
     
     
+    private var isScreenProtectionAdded = false;
+    
+    
     
     override func viewDidLoad() {
+        
+        
         super.viewDidLoad()
+        AppScreenSheid.shared.configureScreenShield();
+        AppScreenSheid.shared.enableScreenShield();
         self.methodsOnViewLoaded();
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated);
+        currentTopController = self;
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews();
     }
+    
+    
+    
+    
+    
+    deinit {
+        self.removeObserverWhenRouteChanges();
+        print("Consulation meeting vc reference removed");
+    }
 }
 
 
 //MARK: Btn Actions
+@available(iOS 13.0, *)
 private extension ConsulationMeetingVC{
     @IBAction func btnCloseSessionPressed(_ sender:UIButton){
-        if let user = ZoomVideoSDK.shareInstance()?.getSession()?.getMySelf(){
-            self.askForLeaveSession(user: user)
+        if(self.isSessionStarted){
+            if let user = ZoomVideoSDK.shareInstance()?.getSession()?.getMySelf(){
+                self.askForLeaveSession(user: user)
+            }
         }
+        
     }
     
     @IBAction func btnAudioTogglePressed(_ sender:UIButton){
-        let user = ZoomVideoSDK.shareInstance()?.getSession()?.getMySelf();
-        if(user?.audioStatus()?.audioType != ZoomVideoSDKAudioType.none){
-            if(user?.audioStatus()?.isMuted == false){
-                ZoomVideoSDK.shareInstance()?.getAudioHelper()?.muteAudio(user);
+        if(self.isSessionStarted){
+            self.isUserInteractAudioOption = true;
+            let user = ZoomVideoSDK.shareInstance()?.getSession()?.getMySelf();
+            if(user?.audioStatus()?.audioType != ZoomVideoSDKAudioType.none){
+                if(user?.audioStatus()?.isMuted == false){
+                    ZoomVideoSDK.shareInstance()?.getAudioHelper()?.muteAudio(user);
+                }
+                else{
+                    ZoomVideoSDK.shareInstance()?.getAudioHelper()?.unmuteAudio(user);
+                }
             }
             else{
-                ZoomVideoSDK.shareInstance()?.getAudioHelper()?.unmuteAudio(user);
+                ZoomVideoSDK.shareInstance()?.getAudioHelper()?.startAudio();
             }
         }
-        else{
-            ZoomVideoSDK.shareInstance()?.getAudioHelper()?.startAudio();
-        }
+        
     }
     
     @IBAction func btnSwitchSpeakerPressed(_ sender:UIButton){
-        let audioSession = AVAudioSession.sharedInstance()
-        
-        do {
-            if(isSpeakerOn){
-                try audioSession.overrideOutputAudioPort(AVAudioSession.PortOverride.none)
-                isSpeakerOn = false;
+        if(self.isSessionStarted){
+            let audioSession = AVAudioSession.sharedInstance()
+            do {
+                if(isSpeakerOn){
+                    try audioSession.overrideOutputAudioPort(AVAudioSession.PortOverride.none)
+                    isSpeakerOn = false;
+                    if(self.isBluetoothDeviceConnected(audioSession: audioSession)){
+                        self.btnSpeakerIcon.setImage(UIImage(named: "head_phone_blue"), for: .normal)
+                    }
+                    else{
+                        self.btnSpeakerIcon.setImage(UIImage(named: "speaker_off"), for: .normal)
+                    }
+                }
+                else{
+                    try audioSession.overrideOutputAudioPort(AVAudioSession.PortOverride.speaker)
+                    isSpeakerOn = true;
+                    
+                    self.btnSpeakerIcon.setImage(UIImage(named: "speaker_on"), for: .normal)
+                }
+                
+            } catch let error as NSError {
+                print("audioSession error: \(error.localizedDescription)")
             }
-            else{
-                try audioSession.overrideOutputAudioPort(AVAudioSession.PortOverride.speaker)
-                isSpeakerOn = true;
-            }
-            
-        } catch let error as NSError {
-            print("audioSession error: \(error.localizedDescription)")
         }
-        
         //self.btnSpeakerIcon.setImage(UIImage(systemName:isSpeakerOn ? "speaker" :  "speaker.slash"), for: .normal)
     }
     
     @IBAction func btnToggleVideoPressed(_ sender:UIButton){
-        if(self.btnVideoIcon.isSelected){
-            self.btnVideoIcon.isSelected = false;
-            ZoomVideoSDK.shareInstance()?.getVideoHelper()?.stopVideo();
-            self.meUserPlaceHolderIcon.isHidden = false;
-            self.btnVideoIcon.setImage(UIImage(named: "video_disable_icon"), for: .normal)
-        }
-        else{
-            self.btnVideoIcon.isSelected = true;
-            ZoomVideoSDK.shareInstance()?.getVideoHelper()?.startVideo();
-            self.meUserPlaceHolderIcon.isHidden = true;
-            self.btnVideoIcon.setImage(UIImage(named: "video_enable_icon"), for: .normal)
+        if(self.isSessionStarted){
+            if(self.thumbnailView.user == nil){
+                self.setData();
+            }
+            
+            
+            if(self.btnVideoIcon.isSelected){
+                self.btnVideoIcon.isSelected = false;
+                ZoomVideoSDK.shareInstance()?.getVideoHelper()?.stopVideo();
+                self.self.thumbnailPlaceHolderView.isHidden = false;
+                self.thumbnailView.isHidden = true;
+                self.btnVideoIcon.setImage(UIImage(named: "video_disable_icon"), for: .normal)
+            }
+            else{
+                
+                if(self.thumbnailView == nil){
+                    self.setData()
+                }
+                
+                
+                self.btnVideoIcon.isSelected = true;
+                ZoomVideoSDK.shareInstance()?.getVideoHelper()?.startVideo();
+                self.thumbnailPlaceHolderView.isHidden = true;
+                self.thumbnailView.isHidden = false;
+                self.btnVideoIcon.setImage(UIImage(named: "video_enable_icon"), for: .normal)
+            }
         }
     }
     
     @IBAction func btnChatPressed(_ sender:UIButton){
-        self.chatVc = nil;
-        if #available(iOS 13.0, *) {
+        if(self.isSessionStarted){
+            self.chatVc = nil;
+            
             self.chatVc =  self.storyboard?.instantiateViewController(identifier: "ZoomChatVC", creator: { coder in
                 ZoomChatVC(arrChatMessages: self.arrChatMessages, coder: coder);
             })
-        } else {
-            // Fallback on earlier versions
+            //self.chatVc?.modalPresentationStyle = .overFullScreen;
+            
+            self.chatVc?.fileSelectedListner = self.fileSelectedListner;
+            self.chatVc?.fileDownloadListener = self.fileDownloadListener;
+            
+            
+            
+            if let vc =  self.chatVc{
+                self.present(vc, animated: true)
+            }
         }
         
-        if let vc =  self.chatVc{
-            self.present(vc, animated: true)
-        }
     }
     
     @IBAction func btnSwitchCameraPressed(_ sender:UIButton){
-        DispatchQueue.global().async {
-            ZoomVideoSDK.shareInstance()?.getVideoHelper()?.switchCamera();
+        if(self.isSessionStarted){
+            if(self.btnVideoIcon.isSelected){
+                DispatchQueue.main.async {
+                    ZoomVideoSDK.shareInstance()?.getVideoHelper()?.switchCamera();
+                }
+            }else{
+                self.showSnackbar(message: "Please switch on your camera");
+            }
         }
         
     }
     
     @IBAction func btnShareScreenPressed(_ sender:UIButton){
-        self.checkAndStartShareScreenProcess();
+        if(self.isSessionStarted){
+            self.checkAndStartShareScreenProcess();
+        }
+        
     }
 }
 
 
 //MARK: Utility Methods
+@available(iOS 13.0, *)
 private extension ConsulationMeetingVC{
     func methodsOnViewLoaded(){
         ZoomVideoSDK.shareInstance()?.delegate = self;
         self.setUI();
-        self.setData();
         if let user = ZoomVideoSDK.shareInstance()?.getSession()?.getMySelf(){
             if #available(iOS 15.0, *) {
                 SDKPiPHelper.shared().updatePiPVideoUser(user: user, videoType: .videoData)
@@ -180,10 +256,20 @@ private extension ConsulationMeetingVC{
         self.btnChatIcon.roundEdges();
         self.btnVideoIcon.roundEdges();
         self.btnSwitchCamera.roundEdges();
+        self.btnSpeakerIcon.roundEdges();
+        self.noCameraPlaceholderIconBtn.roundEdges();
         self.bottomActionView.roundEdges(radius: 34.0)
         
         self.timerView.roundEdges(radius: 17.5);
         self.snackBarView.roundEdges(radius: 20);
+        
+        self.thumbnailPlaceHolderView.isHidden = false;
+        self.thumbnailView.isHidden = true;
+        self.btnVideoIcon.setImage(UIImage(named: "video_disable_icon"), for: .normal)
+        self.btnAudioIcon.setImage(UIImage(named: "mic_disable_icon"), for: .normal);
+        self.thumbnailView.roundEdges(radius: 8.0);
+        self.thumbnailPlaceHolderView.roundEdges(radius: 8.0)
+        self.addObserverWhenRouteChanges();
         //self.btnShareScreen.isHidden = self.sharedExrensionAppBundleId == nil;
     }
     
@@ -194,58 +280,64 @@ private extension ConsulationMeetingVC{
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 self.thumbnailView.user!.getVideoCanvas()?.subscribe(with: self.thumbnailView, aspectMode: ZoomVideoSDKVideoAspect.letterBox, andResolution: ZoomVideoSDKVideoResolution._Auto);
             }
-           
+            
         }
     }
     
     func setDesignationName(user:ZoomVideoSDKUser){
-            if user.isHost(){
-                self.lblCurrentUserDesignation.text = "General Practitioner"
-            }
-            else{
-                self.lblCurrentUserDesignation.text = "Patient/Attendee"
-            }
+        if user.isHost(){
+            self.lblCurrentUserDesignation.text = "General Practitioner"
+        }
+        else{
+            self.lblCurrentUserDesignation.text = "Patient/Attendee"
+        }
         
     }
     
     
     
     
-//    func makeHalfCircleIntoBottomActionView(){
-//        let circlePath = UIBezierPath(arcCenter: CGPoint(x: bottomActionView.bounds.size.width / 2, y: 0), radius: 50, startAngle: 0.0, endAngle: -.pi, clockwise: true)
-//        
-//        circlePath.append(UIBezierPath(rect: bottomActionView.bounds));
-//        circlePath.close();
-//        
-//        let circleShape = CAShapeLayer()
-//        circleShape.path = circlePath.cgPath
-//        circleShape.fillRule = .evenOdd
-//        bottomActionView.layer.mask = circleShape;
-//    }
+    //    func makeHalfCircleIntoBottomActionView(){
+    //        let circlePath = UIBezierPath(arcCenter: CGPoint(x: bottomActionView.bounds.size.width / 2, y: 0), radius: 50, startAngle: 0.0, endAngle: -.pi, clockwise: true)
+    //
+    //        circlePath.append(UIBezierPath(rect: bottomActionView.bounds));
+    //        circlePath.close();
+    //
+    //        let circleShape = CAShapeLayer()
+    //        circleShape.path = circlePath.cgPath
+    //        circleShape.fillRule = .evenOdd
+    //        bottomActionView.layer.mask = circleShape;
+    //    }
     
     func onLeave(){
         self.timer?.invalidate();
         self.timer = nil;
-        let user = self.zoomView.user;
+        _ = self.zoomView.user;
         self.unsubscribeView(user: self.zoomView.user, view: self.zoomView);
         self.unsubscribeView(user: self.thumbnailView.user, view: self.thumbnailView);
         self.dismiss(animated: true);
+        currentTopController = nil;
+        AppScreenSheid.shared.disableScreenShield();
     }
     
     func onAudioStatusChange(){
         let user = ZoomVideoSDK.shareInstance()?.getSession()?.getMySelf();
-        if(user?.audioStatus()?.audioType != ZoomVideoSDKAudioType.none){
-            if(user?.audioStatus()?.isMuted ?? true){
-                self.btnAudioIcon.setImage(UIImage(named: "mic_disable_icon"), for: .normal);
+        if(isUserInteractAudioOption){
+            if(user?.audioStatus()?.audioType != ZoomVideoSDKAudioType.none){
+                if(user?.audioStatus()?.isMuted ?? true){
+                    self.btnAudioIcon.setImage(UIImage(named: "mic_disable_icon"), for: .normal);
+                }
+                else{
+                    self.btnAudioIcon.setImage(UIImage(named: "mic_enable_icon"), for: .normal);
+                }
             }
             else{
-                self.btnAudioIcon.setImage(UIImage(named: "mic_enable_icon"), for: .normal);
+                self.btnAudioIcon.setImage(UIImage(named: "mic_disable_icon"), for: .normal);
             }
         }
         else{
-            self.btnAudioIcon.setImage(UIImage(named: "mic_disable_icon"), for: .normal);
+            ZoomVideoSDK.shareInstance()?.getAudioHelper()?.muteAudio(user);
         }
-        
     }
     
     func startTimerForVideoConference(){
@@ -294,16 +386,14 @@ private extension ConsulationMeetingVC{
         }
         else {
             
-            if #available(iOS 12.0, *) {
-                let broadcastView = RPSystemBroadcastPickerView()
-                broadcastView.preferredExtension = self.sharedExrensionAppBundleId;
-                broadcastView.tag = 1000000;
-                self.view.addSubview(broadcastView)
-                self.sendTouchDownEventToBroadcastButton()
-            } else {
-                // Fallback on earlier versions
-            };
-          
+            
+            let broadcastView = RPSystemBroadcastPickerView()
+            broadcastView.preferredExtension = self.sharedExrensionAppBundleId;
+            broadcastView.tag = 1000000;
+            self.view.addSubview(broadcastView)
+            self.sendTouchDownEventToBroadcastButton()
+            
+            
         }
         
         //if (ZoomVideoSDK.shareInstance()?.getShareHelper()?.isScreenSharingOut()  ?? false)  == false
@@ -311,21 +401,19 @@ private extension ConsulationMeetingVC{
     }
     
     func sendTouchDownEventToBroadcastButton(){
-        if #available(iOS 12.0, *) {
-            let broadcastView:RPSystemBroadcastPickerView?  = self.view.viewWithTag(1000000) as? RPSystemBroadcastPickerView
-            guard let broadcastView else { return;}
-            
-            for subView in broadcastView.subviews{
-                if subView.isKind(of: UIButton.self){
-                    let broadcastBtn = subView as! UIButton
-                    broadcastBtn.sendActions(for: .allTouchEvents)
-                    break;
-                    
-                }
+        
+        let broadcastView:RPSystemBroadcastPickerView?  = self.view.viewWithTag(1000000) as? RPSystemBroadcastPickerView
+        guard let broadcastView else { return;}
+        
+        for subView in broadcastView.subviews{
+            if subView.isKind(of: UIButton.self){
+                let broadcastBtn = subView as! UIButton
+                broadcastBtn.sendActions(for: .allTouchEvents)
+                break;
+                
             }
-        } else {
-            // Fallback on earlier versions
-        };
+        }
+        
         
     }
     
@@ -380,16 +468,20 @@ private extension ConsulationMeetingVC{
         //alert.popoverPresentationController?.sourceView = self.view
         
         self.present(alert, animated: true, completion: {
-            print("completion block")
+            //print("completion block")
         })
     }
     
     func updateViewIfUserStopVideo(user:ZoomVideoSDKUser, canvas:ZoomView){
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             if(user.getShareCanvas()?.videoStatus()?.on == false && canvas.dataType != ZoomVideoSDKVideoType.shareData){
-//                canvas.backgroundColor = UIColor.black;
-//                self.unsubscribeView(user: user, view: canvas);
-                self.otherUserPlaceHolderIcon.isHidden = false;
+                //                canvas.backgroundColor = UIColor.black;
+                //                self.unsubscribeView(user: user, view: canvas);
+                
+                
+                //self.otherUserPlaceHolderIcon.isHidden = false;
+                self.otherUserBGView.isHidden = false;
+                self.zoomView.backgroundColor = UIColor(hexString: "0D1846", alpha: 0.6);
                 
                 if let user = self.thumbnailView.user {
                     if #available(iOS 15.0, *) {
@@ -409,6 +501,7 @@ private extension ConsulationMeetingVC{
                     }
                 }
                 self.otherUserPlaceHolderIcon.isHidden = true;
+                self.otherUserBGView.isHidden = true;
             }
         }
         
@@ -424,7 +517,83 @@ private extension ConsulationMeetingVC{
     
 }
 
+
+//MARK: Audio Session Methods
+@available(iOS 13.0, *)
+private extension ConsulationMeetingVC{
+    
+    func addObserverWhenRouteChanges(){
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(handleRouteChange),
+                                               name: AVAudioSession.routeChangeNotification,
+                                               object: AVAudioSession.sharedInstance())
+    }
+    
+    func removeObserverWhenRouteChanges(){
+        NotificationCenter.default.removeObserver(#selector(handleRouteChange), name: AVAudioSession.routeChangeNotification, object: AVAudioSession.sharedInstance());
+    }
+    
+    @objc func handleRouteChange(notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
+            return
+        }
+        
+        switch reason {
+        case .newDeviceAvailable:
+            let audioSession = AVAudioSession.sharedInstance()
+            let val = self.isBluetoothDeviceConnected(audioSession: audioSession);
+            if(val){
+                try? audioSession.overrideOutputAudioPort(AVAudioSession.PortOverride.none)
+                self.btnSpeakerIcon.setImage(UIImage(named: "head_phone_blue"), for: .normal)
+                self.isSpeakerOn = false;
+            }
+            //print("New device available")
+            // Handle new device connection
+        case .oldDeviceUnavailable:
+            print("Old device unavailable")
+            let audioSession = AVAudioSession.sharedInstance()
+            let val = self.isBluetoothDeviceConnected(audioSession: audioSession);
+            if(val == false){
+                //print("head phone disconnected");
+                self.btnSpeakerIcon.setImage(UIImage(named: "speaker_off"), for: .normal)
+            }
+            // Handle device disconnection
+        case .override:
+            print("Route override occurred")
+        case .categoryChange:
+            let audioSession = AVAudioSession.sharedInstance()
+            let val = self.isBluetoothDeviceConnected(audioSession: audioSession);
+            if(val){
+                try? audioSession.overrideOutputAudioPort(AVAudioSession.PortOverride.none)
+                self.btnSpeakerIcon.setImage(UIImage(named: "head_phone_blue"), for: .normal)
+                self.isSpeakerOn = false;
+               // print("head phone connected");
+            }
+            //print("New device available")
+            // Handle route override
+        default:
+            
+            // Handle other route change reasons
+            print("Other route change reason: \(reason)")
+        }
+    }
+    
+    func isBluetoothDeviceConnected(audioSession: AVAudioSession) -> Bool {
+        let bluetoothPortTypes: Set<AVAudioSession.Port> = [.bluetoothA2DP, .bluetoothLE,
+                                                            .bluetoothHFP, .headphones]
+        for output in audioSession.currentRoute.outputs {
+            if bluetoothPortTypes.contains(output.portType) {
+                return true
+            }
+        }
+        return false
+    }
+}
+
 //MARK: ZoomVide Delegate Methods
+@available(iOS 13.0, *)
 extension ConsulationMeetingVC:ZoomVideoSDKDelegate{
     func onError(_ ErrorType: ZoomVideoSDKError, detail details: Int) {
         switch(ErrorType){
@@ -444,7 +613,9 @@ extension ConsulationMeetingVC:ZoomVideoSDKDelegate{
     
     func onSessionJoin() {
         print("Session Joined Successfully");
+        isSessionStarted = true;
         self.startTimerForVideoConference();
+        
         DispatchQueue.global(qos: .userInitiated).async {
             CallKitManager.shared().startCall(sessionName: ZoomVideoSDK.shareInstance()?.getSession()?.getName()) {
                 DispatchQueue.main.async {
@@ -467,6 +638,7 @@ extension ConsulationMeetingVC:ZoomVideoSDKDelegate{
         };
         CallKitManager.shared().endCall();
         self.onLeave();
+        self.isSessionStarted = false;
     }
     
     func onUserJoin(_ helper: ZoomVideoSDKUserHelper?, users userArray: [ZoomVideoSDKUser]?) {
@@ -488,8 +660,6 @@ extension ConsulationMeetingVC:ZoomVideoSDKDelegate{
             }
         }
     }
-    
-    
     
     func onUserLeave(_ helper: ZoomVideoSDKUserHelper?, users userArray: [ZoomVideoSDKUser]?) {
         
@@ -525,24 +695,29 @@ extension ConsulationMeetingVC:ZoomVideoSDKDelegate{
     }
     
     func onUserVideoStatusChanged(_ helper: ZoomVideoSDKVideoHelper?, user userArray: [ZoomVideoSDKUser]?) {
-//            if let meUser = ZoomVideoSDK.shareInstance()?.getSession()?.getMySelf(){
-//                if(meUser.getID() == userArray?.first?.getID()){
-//                    return;
-//                    //self.updateViewIfUserStopVideo(user: meUser, canvas: self.thumbnailView);
-//                }
-//            }
-            
-            if let user = userArray?.first as? ZoomVideoSDKUser{
-                if(user.getID() == self.zoomView.user?.getID()){
-                    self.updateViewIfUserStopVideo(user: user, canvas: self.zoomView)
-                }
+        //            if let meUser = ZoomVideoSDK.shareInstance()?.getSession()?.getMySelf(){
+        //                if(meUser.getID() == userArray?.first?.getID()){
+        //                    return;
+        //                    //self.updateViewIfUserStopVideo(user: meUser, canvas: self.thumbnailView);
+        //                }
+        //            }
+        
+        if let user = userArray?.first as? ZoomVideoSDKUser{
+            if(user.getID() == self.zoomView.user?.getID()){
+                self.updateViewIfUserStopVideo(user: user, canvas: self.zoomView)
             }
+        }
         
         
     }
     
     func onUserAudioStatusChanged(_ helper: ZoomVideoSDKAudioHelper?, user userArray: [ZoomVideoSDKUser]?) {
-        self.onAudioStatusChange()
+        if let user = userArray?.first as? ZoomVideoSDKUser{
+            if(user.getID() == ZoomVideoSDK.shareInstance()?.getSession()?.getMySelf()?.getID()){
+                self.onAudioStatusChange()
+            }
+        }
+        
     }
     
     func onChatNewMessageNotify(_ helper: ZoomVideoSDKChatHelper?, message chatMessage: ZoomVideoSDKChatMessage?) {

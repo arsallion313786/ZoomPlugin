@@ -3,7 +3,7 @@
     "cordova_name": "Zoom Video SDK Plugin",
     "version": "1.0.0",
     "description": "Plugin to integrate the Zoom Video SDK with Android and iOS",
-    "platforms": ["android"],
-    "author": "Truewind",
+    "platforms": ["android","iOS"],
+    "author": "Bupa Arabia",
     "license": "Apache 2.0 License"
 }

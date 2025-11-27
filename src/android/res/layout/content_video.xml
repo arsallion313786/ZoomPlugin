@@ -28,22 +28,53 @@
             android:visibility="gone" />
     </us.zoom.sdk.ZoomVideoSDKVideoView>
 
-    <us.zoom.sdk.ZoomVideoSDKVideoView
-        android:id="@+id/thumbnail_video_view"
-        android:visibility="gone"
-        android:layout_width="96dp"
-        android:layout_height="128dp"
-        android:layout_margin="16dp"
-        android:layout_gravity="bottom|start"/>
+<!--    <us.zoom.sdk.ZoomVideoSDKVideoView-->
+<!--        android:id="@+id/thumbnail_video_view"-->
+<!--        android:visibility="gone"-->
+<!--        android:layout_width="140dp"-->
+<!--        android:layout_height="210dp"-->
+
+<!--        android:layout_marginHorizontal="20dp"-->
+<!--        android:layout_marginBottom="120dp"-->
+<!--        android:layout_gravity="bottom|end"/>-->
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="120dp"
+        android:layout_gravity="bottom|end">
+
+        <us.zoom.sdk.ZoomVideoSDKVideoView
+            android:id="@+id/thumbnail_video_view"
+            android:visibility="gone"
+            android:layout_width="140dp"
+            android:layout_height="210dp" />
+
+        <ImageView
+            android:id="@+id/switch_camera_action_fab"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:visibility="gone"
+            android:layout_alignTop="@id/thumbnail_video_view"
+            android:layout_alignEnd="@id/thumbnail_video_view"
+            android:layout_margin="@dimen/fab_margin"
+            android:src="@drawable/ic_switch_camera_icon_circle_arrow"
+            app:backgroundTint="@color/colorBlack"
+            app:fabSize="mini" />
+
+    </RelativeLayout>
 
 	<us.zoom.sdk.ZoomVideoSDKVideoView
         android:id="@+id/secondary_thumbnail_video_view"
         android:visibility="gone"
         android:layout_width="96dp"
         android:layout_height="128dp"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="160dp"
-        android:layout_gravity="bottom|start">
+
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="120dp"
+
+        android:layout_gravity="bottom|end">
 
     </us.zoom.sdk.ZoomVideoSDKVideoView>
 
@@ -86,6 +117,8 @@
             android:text=""/>
 
     </LinearLayout>
+
+
 
 
 </FrameLayout>

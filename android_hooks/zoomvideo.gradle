@@ -1,0 +1,59 @@
+repositories {
+    mavenCentral()
+    google()
+}
+configurations {
+    // Correctly define these configurations as 'resolvable' so Gradle knows their purpose.
+    // This fixes the "Cannot select root node... as a variant" error.
+    resolvable('debugRuntimeClasspathCopy')
+    resolvable('releaseRuntimeClasspathCopy')
+}
+dependencies {
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+    implementation 'com.google.crypto.tink:tink-android:1.8.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'us.zoom.videosdk:zoomvideosdk-core:1.10.1'
+}
+
+android.applicationVariants.all { variant ->
+    // Define the name for our custom copy task for this specific variant (e.g., "copyZoomDebug")
+    def copyTaskName = "copyZoom${variant.name.capitalize()}"
+
+    // Create our copy task
+    tasks.register(copyTaskName, Copy) {
+        from configurations.getByName(variant.name + "RuntimeClasspath")
+        into "build/intermediates/assets/${variant.name}/zoom"
+        include "**/ZoomVideoSDK.xcframework/**"
+    }
+
+    // *** THE CRITICAL FIX ***
+    // Get the name of the correct task to hook into, which is now 'map<VariantName>SourceSetPaths'
+    def mapSourceSetPathsTaskName = "map${variant.name.capitalize()}SourceSetPaths"
+
+    // Find the correct source set mapping task and make it depend on our copy task.
+    // This ensures our Zoom assets are copied *before* Gradle gathers all the final assets.
+    tasks.named(mapSourceSetPathsTaskName).configure {
+        it.dependsOn(tasks.named(copyTaskName))
+    }
+}
+
+//android {
+//    buildTypes {
+//        release {
+//            minifyEnabled true
+//            shrinkResources true
+//            proguardFiles 'proguard-rules.pro'
+//        }
+//        debug {
+//            minifyEnabled true
+//            shrinkResources true
+//            proguardFiles 'proguard-rules.pro'
+//        }
+//        defaultConfig {
+//           ndk {
+//                abiFilters 'armeabi-v7a', 'arm64-v8a' // Include only the architectures you need
+//           }
+//        }
+//    }
+//}
