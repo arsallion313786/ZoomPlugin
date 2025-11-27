@@ -112,7 +112,8 @@ public class ZoomVideo extends CordovaPlugin {
             String alertType = args.getString(0);
             String alertMessage = args.getString(1);
 
-            cordova.getActivity().runOnUiThread(new kotlinx.coroutines.Runnable() {
+            cordova.getActivity().runOnUiThread(new Runnable() {
+                @Override
                 public void run() {
                     Toast.makeText(context, alertMessage, Toast.LENGTH_LONG).show();
                 }
