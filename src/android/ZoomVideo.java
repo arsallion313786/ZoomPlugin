@@ -64,6 +64,9 @@ public class ZoomVideo extends CordovaPlugin {
             sendFileDataContext = callbackContext;
             this.ShowDocument(args);
         }
+ 	    else if (action.equals("handleSuccessErrorMessage")) {
+            this.HandleSuccessErrorMessage(args);
+        }
         return true;
     }
 
@@ -102,6 +105,29 @@ public class ZoomVideo extends CordovaPlugin {
 
         showDoc(DownloadFileName,DownloadFileMimeType,BinaryData, isBase64String);
         //BottomSheetChat.showDocument(this.DownloadFileName,this.DownloadFileMimeType,this.BinaryData);
+    }
+
+    public void HandleSuccessErrorMessage(final JSONArray args) {
+        try {
+            String alertType = args.getString(0);
+            String alertMessage = args.getString(1);
+
+            cordova.getActivity().runOnUiThread(new kotlinx.coroutines.Runnable() {
+                public void run() {
+                    Toast.makeText(context, alertMessage, Toast.LENGTH_LONG).show();
+                }
+            });
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public  void showDoc(String downloadFileName, String downloadFileMimeType, String binaryData, boolean isBase64String){
+        cordova.getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                BottomSheetChat.showDocument(downloadFileName, downloadFileMimeType, binaryData,isBase64String);
+            }
+        });
     }
     public  void showDoc(String downloadFileName, String downloadFileMimeType, String binaryData, boolean isBase64String){
         cordova.getActivity().runOnUiThread(new Runnable() {

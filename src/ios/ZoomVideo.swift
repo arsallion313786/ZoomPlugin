@@ -67,6 +67,15 @@ var currentTopController:UIViewController?
         
     }
     
+    @objc(handleSuccessErrorMessage:)
+    func handleSuccessAndErrorMessage(command: CDVInvokedUrlCommand){
+        DispatchQueue.main.async {
+            let alertType = command.arguments[0] as? String ?? ""
+            let alertMessage = command.arguments[1] as? String ?? ""
+            ZoomAlert.showAlert(title: "Consultation", descp: alertMessage, controller: self.consulationMeetingVC?.topMostViewController() ??  self.viewController)
+        }
+    }
+    
     private  func getRandomURL(fileName:String, mimType:String, documentId:String?) -> String{
         let url = "https://fileupload.bupa.com.sa/#" + (documentId ?? self.buildRandomString()) + "#" + fileName + "#" + mimType;
         
