@@ -121,14 +121,7 @@ public class ZoomVideo extends CordovaPlugin {
             throw new RuntimeException(e);
         }
     }
-    public  void showDoc(String downloadFileName, String downloadFileMimeType, String binaryData, boolean isBase64String){
-        cordova.getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                BottomSheetChat.showDocument(downloadFileName, downloadFileMimeType, binaryData,isBase64String);
-            }
-        });
-    }
+    
     public  void showDoc(String downloadFileName, String downloadFileMimeType, String binaryData, boolean isBase64String){
         cordova.getActivity().runOnUiThread(new Runnable() {
             @Override
