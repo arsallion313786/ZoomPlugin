@@ -18,7 +18,7 @@ final class ZoomChatVC: BupaBaseVC {
     @IBOutlet private weak var tblView:UITableView!
     @IBOutlet private weak var bottomConstraint:NSLayoutConstraint!
     @IBOutlet private weak var inputField:UITextField!
-    
+    let fiveMegabytesInBytes = 5 * 1024 * 1024
     //@IBOutlet private weak var containerView:UIView!
     
     private var isScreenProtectionAdded = false;
@@ -101,7 +101,18 @@ private extension ZoomChatVC{
                     var fileName = "\(Date().timeIntervalSince1970)".replacingOccurrences(of: ".", with: "")
                     fileName = fileName  + ".jpg";
                     
+                    
+                    
                     let data = image.jpegData(compressionQuality: 1.0)!
+                    
+                    let fileSizeInBytes = data.count
+                    if fileSizeInBytes > self.fiveMegabytesInBytes {
+                        ZoomAlert.showAlert(title: "Consultation", descp: "File size should be less than 5 MB", controller: self);
+                        return;
+                    }
+                    
+                    
+                    
                     //DispatchQueue.main.async {
                     DispatchQueue.main.async {
                         self.fileSelectedListner?(self.getJsonObject(baseCode: data.base64EncodedString(options: NSData.Base64EncodingOptions.init(rawValue: 0)), fileName: fileName, fileType: "image/jpg"), nil);
@@ -119,6 +130,11 @@ private extension ZoomChatVC{
                         return
                     };
                     let fileModel = ZoomFileInfoModel(fileURL: fileURL)
+                    
+                    if(fileModel.size > self.fiveMegabytesInBytes){
+                        ZoomAlert.showAlert(title: "Consultation", descp: "File size should be less than 5 MB", controller: self);
+                        return;
+                    }
                     
                     
                     DispatchQueue.main.async {

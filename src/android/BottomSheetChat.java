@@ -32,6 +32,7 @@ import android.widget.PopupWindow;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -76,6 +77,8 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
     final String ID = "id";
     private Activity sessionActivity;
     private static final int FILE_SELECT_CODE = 0;
+
+    private static final long MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
     public BottomSheetChat (List<ChatMessage> chatMessages,Activity sessionActivity) {
         this.chatMessages = chatMessages;
         this.sessionActivity = sessionActivity;
@@ -295,6 +298,18 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
 //                    } catch (IOException e) {
 //                        throw new RuntimeException(e);
 //                    }
+
+                    // *** FILE SIZE CHECK ADDED HERE ***
+                    if (file.length() > MAX_FILE_SIZE_BYTES) {
+                        new AlertDialog.Builder(getContext())
+                                .setTitle("File Too Large")
+                                .setMessage("The selected file exceeds the 5MB size limit. Please choose a smaller file.")
+                                .setPositiveButton(android.R.string.ok, null)
+                                .setIcon(android.R.drawable.ic_dialog_alert)
+                                .show();
+                        // Stop further processing
+                        return;
+                    }
 
                     String base64 =  this.getStringFile(file);
                     //Base64.encodeToString(bytes, Base64.DEFAULT);
