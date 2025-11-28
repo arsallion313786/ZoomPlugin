@@ -75,7 +75,7 @@ class SDKPiPHelper: NSObject,AVPictureInPictureControllerDelegate {
         
         pipVideoView = SDKPiPWindowView(frame: defRect);
         pipVideoView.translatesAutoresizingMaskIntoConstraints = true;
-        ScreenShield.shared.protect(view: self.pipVideoCallViewCtrl.view)
+        //ScreenShield.shared.protect(view: self.pipVideoCallViewCtrl.view)
         
         pipVideoCallViewCtrl.view.addSubview(pipVideoView);
         
