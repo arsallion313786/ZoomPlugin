@@ -16,6 +16,11 @@
                 <param name="android-package" value="cordova.plugin.zoomvideo.ZoomVideo" />
             </feature>
         </config-file>
+        
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+                <uses-sdk android:minSdkVersion="28" />
+            </config-file>
+        
 
         <config-file target="AndroidManifest.xml" parent="/*">
             <uses-permission android:name="android.permission.INTERNET" />
@@ -85,7 +90,7 @@
         <resource-file src="src/android/res/values/dimens.xml" target="res/values/dimens.xml" />
         <resource-file src="src/android/res/values/strings.xml" target="res/values/strings.xml" />
         <resource-file src="src/android/res/values/styles.xml" target="res/values/styles.xml" />
-        <resource-file src="src/android/res/values/themes.xml" target="res/values/themes.xml" />
+<!--        <resource-file src="src/android/res/values/themes.xml" target="res/values/themes.xml" />-->
         
 
         <resource-file src="src/android/res/values-v21/styles.xml" target="res/values-v21/styles.xml" />

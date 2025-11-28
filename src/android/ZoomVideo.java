@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import android.os.Bundle;
 import android.content.Intent;
 import android.util.Log;
+import android.widget.Toast;
 
 import us.zoom.sdk.ZoomVideoSDK;
 
@@ -115,14 +116,14 @@ public class ZoomVideo extends CordovaPlugin {
             cordova.getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(context, alertMessage, Toast.LENGTH_LONG).show();
+                    Toast.makeText(cordova.getActivity(), alertMessage, Toast.LENGTH_LONG).show();
                 }
             });
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
     public  void showDoc(String downloadFileName, String downloadFileMimeType, String binaryData, boolean isBase64String){
         cordova.getActivity().runOnUiThread(new Runnable() {
             @Override
