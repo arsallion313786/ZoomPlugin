@@ -292,6 +292,8 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
             params.domain = domain;
         }
 
+
+
         ZoomVideoSDK sdk = ZoomVideoSDK.getInstance();
 
         int initResult = sdk.initialize(this, params);
@@ -772,12 +774,12 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
         /* Start Video */
         ZoomVideoSDKVideoHelper videoHelper = sdk.getVideoHelper();
-        if (!myCanvas.getVideoStatus().isOn()) {
-            videoHelper.startVideo();
-            shouldVideoBeOn = true;
-        } else {
-            Log.i("SessionActivity", "Video was already started onSessionJoin");
-        }
+//        if (!myCanvas.getVideoStatus().isOn()) {
+//            videoHelper.startVideo();
+//            shouldVideoBeOn = true;
+//        } else {
+//            Log.i("SessionActivity", "Video was already started onSessionJoin");
+//        }
 
         this.thumbnailVideoView.setVisibility(View.VISIBLE);
         this.thumbnailUser = myUser;
