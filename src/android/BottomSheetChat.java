@@ -57,7 +57,7 @@ import java.util.ArrayList;
 import java.util.List;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
-import com.github.barteksc.pdfviewer.PDFView;
+//import com.github.barteksc.pdfviewer.PDFView;
 
 import us.zoom.sdk.ZoomVideoSDK;
 
@@ -70,7 +70,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
     static Button buttonClose;
     static WebView webView;
 
-    static PDFView pdfView; // <-- ADD THIS
+    //static PDFView pdfView; // <-- ADD THIS
     Button btnUpload;
     List<ChatMessage> chatMessages = new ArrayList<>();
     ChatAdapter chatAdapter = new ChatAdapter(chatMessages);
@@ -100,7 +100,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
         buttonSend = view.findViewById(getResourceId(context,ID,("buttonSend")));
         buttonClose = view.findViewById(getResourceId(context,ID,("close_button")));
         webView = view.findViewById(getResourceId(context,ID,("webview")));
-        pdfView = view.findViewById(getResourceId(context, ID, ("pdfView"))); // <-- ADD THIS
+        //pdfView = view.findViewById(getResourceId(context, ID, ("pdfView"))); // <-- ADD THIS
         btnUpload = view.findViewById(getResourceId(context,ID,("uploadButton")));
         recyclerViewChat.setLayoutManager(new LinearLayoutManager(getContext()));
         //chatAdapter = new ChatAdapter();
@@ -190,7 +190,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
             @Override
             public void onClick(View v) {
                 webView.setVisibility(View.GONE);
-                pdfView.setVisibility(View.GONE); // <-- ADD THIS
+                //pdfView.setVisibility(View.GONE); // <-- ADD THIS
                 buttonClose.setVisibility(View.GONE);
             }
         });
@@ -360,7 +360,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
 
         // --- Hide both views initially to prevent flicker ---
         if (webView != null) webView.setVisibility(View.GONE);
-        if (pdfView != null) pdfView.setVisibility(View.GONE);
+        //if (pdfView != null) pdfView.setVisibility(View.GONE);
 
         // --- Logic to handle different file types ---
         if (DownloadFileMimeType.startsWith("image/")) {
@@ -376,24 +376,24 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
             webView.setVisibility(View.VISIBLE);
 
         } else if (DownloadFileMimeType.equals("application/pdf")) {
-            if (pdfView == null) return;
-            // --- NEW, ROBUST STRATEGY FOR PDFs using the library ---
-            final byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
-
-            pdfView.fromBytes(pdfData)
-                    .enableSwipe(true) // allow swiping pages
-                    .swipeHorizontal(false)
-                    .enableDoubletap(true)
-                    .defaultPage(0)
-                    .onError(t -> {
-                        Log.e("PDFView", "Error loading PDF", t);
-                    })
-                    .onPageError((page, t) -> {
-                        Log.e("PDFView", "Error on page " + page, t);
-                    })
-                    .load();
-
-            pdfView.setVisibility(View.VISIBLE);
+//            if (pdfView == null) return;
+//            // --- NEW, ROBUST STRATEGY FOR PDFs using the library ---
+//            final byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
+//
+//            pdfView.fromBytes(pdfData)
+//                    .enableSwipe(true) // allow swiping pages
+//                    .swipeHorizontal(false)
+//                    .enableDoubletap(true)
+//                    .defaultPage(0)
+//                    .onError(t -> {
+//                        Log.e("PDFView", "Error loading PDF", t);
+//                    })
+//                    .onPageError((page, t) -> {
+//                        Log.e("PDFView", "Error on page " + page, t);
+//                    })
+//                    .load();
+//
+//            pdfView.setVisibility(View.VISIBLE);
 
         } else {
             // --- Fallback for unsupported types ---
