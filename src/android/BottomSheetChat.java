@@ -61,6 +61,8 @@ import java.util.ArrayList;
 import java.util.List;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 //import com.github.barteksc.pdfviewer.PDFView;
 
 import us.zoom.sdk.ZoomVideoSDK;
@@ -71,6 +73,17 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
     RecyclerView recyclerViewChat;
 
     static ImageView pdfImageView; // <-- ADD THIS
+
+    static RelativeLayout pdfNavigationControls;
+    static Button pdfButtonPrevious;
+    static Button pdfButtonNext;
+    static TextView pdfPageNumber;
+
+    // --- Member variables to manage the PDF renderer ---
+    private static PdfRenderer pdfRenderer;
+    private static PdfRenderer.Page currentPage;
+    private static ParcelFileDescriptor parcelFileDescriptor;
+    private static int currentPageIndex = 0;
     static EditText editTextMessage;
     static Button buttonSend;
     static Button buttonClose;
@@ -107,6 +120,11 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
         buttonClose = view.findViewById(getResourceId(context,ID,("close_button")));
         webView = view.findViewById(getResourceId(context,ID,("webview")));
         pdfImageView = view.findViewById(getResourceId(context, ID, ("pdf_image_view"))); // <-- ADD THIS
+        // --- Find the new navigation views ---
+        pdfNavigationControls = view.findViewById(getResourceId(context, ID, "pdf_navigation_controls"));
+        pdfButtonPrevious = view.findViewById(getResourceId(context, ID, "pdf_button_previous"));
+        pdfButtonNext = view.findViewById(getResourceId(context, ID, "pdf_button_next"));
+        pdfPageNumber = view.findViewById(getResourceId(context, ID, "pdf_page_number"));
         //pdfView = view.findViewById(getResourceId(context, ID, ("pdfView"))); // <-- ADD THIS
         btnUpload = view.findViewById(getResourceId(context,ID,("uploadButton")));
         recyclerViewChat.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -198,8 +216,22 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
             public void onClick(View v) {
                 webView.setVisibility(View.GONE);
                 pdfImageView.setVisibility(View.GONE); // <-- ADD THIS
+                pdfNavigationControls.setVisibility(View.GONE); // <-- Hide controls
                 //pdfView.setVisibility(View.GONE); // <-- ADD THIS
                 buttonClose.setVisibility(View.GONE);
+                closePdfRenderer();
+            }
+        });
+
+        pdfButtonPrevious.setOnClickListener(v -> {
+            if (pdfRenderer != null) {
+                showPdfPage(currentPageIndex - 1);
+            }
+        });
+
+        pdfButtonNext.setOnClickListener(v -> {
+            if (pdfRenderer != null) {
+                showPdfPage(currentPageIndex + 1);
             }
         });
         // Handle receiving messages
@@ -215,6 +247,55 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
                 });
             }
         });*/
+    }
+
+    private static void showPdfPage(int index) {
+        if (pdfRenderer == null || index < 0 || index >= pdfRenderer.getPageCount()) {
+            return; // Index out of bounds
+        }
+
+        // Close the current page before opening a new one
+        if (currentPage != null) {
+            currentPage.close();
+        }
+
+        // Open the requested page
+        currentPage = pdfRenderer.openPage(index);
+        currentPageIndex = index;
+
+        // Create a bitmap and render the page
+        Bitmap bitmap = Bitmap.createBitmap(currentPage.getWidth(), currentPage.getHeight(), Bitmap.Config.ARGB_8888);
+        currentPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+        pdfImageView.setImageBitmap(bitmap);
+
+        // Update UI
+        updatePdfNavigationButtons();
+    }
+
+    private static void updatePdfNavigationButtons() {
+        int pageCount = pdfRenderer.getPageCount();
+        pdfButtonPrevious.setEnabled(currentPageIndex > 0);
+        pdfButtonNext.setEnabled(currentPageIndex < pageCount - 1);
+        pdfPageNumber.setText("Page " + (currentPageIndex + 1) + " / " + pageCount);
+    }
+
+    private static void closePdfRenderer() {
+        try {
+            if (currentPage != null) {
+                currentPage.close();
+                currentPage = null;
+            }
+            if (pdfRenderer != null) {
+                pdfRenderer.close();
+                pdfRenderer = null;
+            }
+            if (parcelFileDescriptor != null) {
+                parcelFileDescriptor.close();
+                parcelFileDescriptor = null;
+            }
+        } catch (IOException e) {
+            Log.e("PDFRenderer", "Error closing PDF renderer", e);
+        }
     }
 
 
@@ -244,6 +325,8 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
         lastVal = encodedFile;
         return lastVal;
     }
+
+
 
     private File getFileFromUri(Uri uri) {
         assert getApplicationContext() != null;
@@ -388,43 +471,28 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
             if (pdfImageView == null) return;
             // --- NEW, NATIVE STRATEGY FOR PDFs ---
             try {
-                final byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
+                // First, clean up any previously opened PDF
+                closePdfRenderer();
 
-                // 1. Write the PDF bytes to a temporary file
+                final byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
                 File tempFile = new File(context.getCacheDir(), "temp_pdf.pdf");
                 try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                     fos.write(pdfData);
                 }
 
-                // 2. Open the file with a ParcelFileDescriptor
-                ParcelFileDescriptor pfd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY);
+                parcelFileDescriptor = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY);
+                pdfRenderer = new PdfRenderer(parcelFileDescriptor);
 
-                // 3. Create the PdfRenderer
-                PdfRenderer renderer = new PdfRenderer(pfd);
-
-                // 4. Render the first page (page 0)
-                PdfRenderer.Page page = renderer.openPage(0);
-                Bitmap bitmap = Bitmap.createBitmap(page.getWidth(), page.getHeight(), Bitmap.Config.ARGB_8888);
-                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-
-                // 5. Set the bitmap to the ImageView
-                pdfImageView.setImageBitmap(bitmap);
-
-                // 6. Close resources
-                page.close();
-                renderer.close();
-                pfd.close();
-                tempFile.delete(); // Clean up the temp file
+                // Show the first page (index 0)
+                currentPageIndex = 0;
+                showPdfPage(currentPageIndex);
 
                 pdfImageView.setVisibility(View.VISIBLE);
+                pdfNavigationControls.setVisibility(View.VISIBLE);
 
             } catch (Exception e) {
                 Log.e("PDFRenderer", "Error rendering PDF", e);
-                // Handle error - show a fallback message
-                if (webView != null) {
-                    webView.loadData("<html><body>Error displaying PDF preview.</body></html>", "text/html", "UTF-8");
-                    webView.setVisibility(View.VISIBLE);
-                }
+                // Handle error...
             }
         }
         else {
