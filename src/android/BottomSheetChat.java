@@ -11,8 +11,11 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import android.util.Base64;
@@ -27,6 +30,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
@@ -65,6 +69,8 @@ import us.zoom.sdk.ZoomVideoSDK;
 public class BottomSheetChat extends BottomSheetDialogFragment {
 
     RecyclerView recyclerViewChat;
+
+    static ImageView pdfImageView; // <-- ADD THIS
     static EditText editTextMessage;
     static Button buttonSend;
     static Button buttonClose;
@@ -100,6 +106,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
         buttonSend = view.findViewById(getResourceId(context,ID,("buttonSend")));
         buttonClose = view.findViewById(getResourceId(context,ID,("close_button")));
         webView = view.findViewById(getResourceId(context,ID,("webview")));
+        pdfImageView = view.findViewById(getResourceId(context, ID, ("pdf_image_view"))); // <-- ADD THIS
         //pdfView = view.findViewById(getResourceId(context, ID, ("pdfView"))); // <-- ADD THIS
         btnUpload = view.findViewById(getResourceId(context,ID,("uploadButton")));
         recyclerViewChat.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -190,6 +197,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
             @Override
             public void onClick(View v) {
                 webView.setVisibility(View.GONE);
+                pdfImageView.setVisibility(View.GONE); // <-- ADD THIS
                 //pdfView.setVisibility(View.GONE); // <-- ADD THIS
                 buttonClose.setVisibility(View.GONE);
             }
@@ -375,27 +383,51 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
 
             webView.setVisibility(View.VISIBLE);
 
-        } else if (DownloadFileMimeType.equals("application/pdf")) {
-//            if (pdfView == null) return;
-//            // --- NEW, ROBUST STRATEGY FOR PDFs using the library ---
-//            final byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
-//
-//            pdfView.fromBytes(pdfData)
-//                    .enableSwipe(true) // allow swiping pages
-//                    .swipeHorizontal(false)
-//                    .enableDoubletap(true)
-//                    .defaultPage(0)
-//                    .onError(t -> {
-//                        Log.e("PDFView", "Error loading PDF", t);
-//                    })
-//                    .onPageError((page, t) -> {
-//                        Log.e("PDFView", "Error on page " + page, t);
-//                    })
-//                    .load();
-//
-//            pdfView.setVisibility(View.VISIBLE);
+        }
+        else if (DownloadFileMimeType.equals("application/pdf")) {
+            if (pdfImageView == null) return;
+            // --- NEW, NATIVE STRATEGY FOR PDFs ---
+            try {
+                final byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
 
-        } else {
+                // 1. Write the PDF bytes to a temporary file
+                File tempFile = new File(context.getCacheDir(), "temp_pdf.pdf");
+                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                    fos.write(pdfData);
+                }
+
+                // 2. Open the file with a ParcelFileDescriptor
+                ParcelFileDescriptor pfd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY);
+
+                // 3. Create the PdfRenderer
+                PdfRenderer renderer = new PdfRenderer(pfd);
+
+                // 4. Render the first page (page 0)
+                PdfRenderer.Page page = renderer.openPage(0);
+                Bitmap bitmap = Bitmap.createBitmap(page.getWidth(), page.getHeight(), Bitmap.Config.ARGB_8888);
+                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+
+                // 5. Set the bitmap to the ImageView
+                pdfImageView.setImageBitmap(bitmap);
+
+                // 6. Close resources
+                page.close();
+                renderer.close();
+                pfd.close();
+                tempFile.delete(); // Clean up the temp file
+
+                pdfImageView.setVisibility(View.VISIBLE);
+
+            } catch (Exception e) {
+                Log.e("PDFRenderer", "Error rendering PDF", e);
+                // Handle error - show a fallback message
+                if (webView != null) {
+                    webView.loadData("<html><body>Error displaying PDF preview.</body></html>", "text/html", "UTF-8");
+                    webView.setVisibility(View.VISIBLE);
+                }
+            }
+        }
+        else {
             // --- Fallback for unsupported types ---
             if (webView == null) return;
             Log.w("BottomSheetChat", "Unsupported file type for preview: " + DownloadFileMimeType);

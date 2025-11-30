@@ -24,6 +24,15 @@
         android:visibility="gone"
         android:layout_below="@id/close_button" />
 
+    <ImageView
+        android:id="@+id/pdf_image_view"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_weight="1"
+        android:visibility="gone"
+        android:layout_below="@id/close_button"
+        android:contentDescription="PDF Preview" />
+
     <!-- ADD THE PDFVIEW -->
 <!--    <com.github.barteksc.pdfviewer.PDFView-->
 <!--        android:id="@+id/pdfView"-->
