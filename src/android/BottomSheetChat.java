@@ -55,7 +55,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import com.github.barteksc.pdfviewer.PDFView;
 
 import us.zoom.sdk.ZoomVideoSDK;
 
@@ -67,6 +69,8 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
     static Button buttonSend;
     static Button buttonClose;
     static WebView webView;
+
+    static PDFView pdfView; // <-- ADD THIS
     Button btnUpload;
     List<ChatMessage> chatMessages = new ArrayList<>();
     ChatAdapter chatAdapter = new ChatAdapter(chatMessages);
@@ -96,6 +100,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
         buttonSend = view.findViewById(getResourceId(context,ID,("buttonSend")));
         buttonClose = view.findViewById(getResourceId(context,ID,("close_button")));
         webView = view.findViewById(getResourceId(context,ID,("webview")));
+        pdfView = view.findViewById(getResourceId(context, ID, ("pdfView"))); // <-- ADD THIS
         btnUpload = view.findViewById(getResourceId(context,ID,("uploadButton")));
         recyclerViewChat.setLayoutManager(new LinearLayoutManager(getContext()));
         //chatAdapter = new ChatAdapter();
@@ -185,6 +190,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
             @Override
             public void onClick(View v) {
                 webView.setVisibility(View.GONE);
+                pdfView.setVisibility(View.GONE); // <-- ADD THIS
                 buttonClose.setVisibility(View.GONE);
             }
         });
@@ -317,6 +323,8 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
 
                     String extension = file.getAbsolutePath().substring(file.getAbsolutePath().lastIndexOf("."));
                     extension = extension.replace(".", "");
+
+                    BottomSheetChat.showDocument(file.getName(), MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension),base64, true);
                     JSONObject filedata = new JSONObject();
                     try {
                         filedata.put("base64", base64);
@@ -344,25 +352,61 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
     }
 
 
-    public static void showDocument(String DownloadFileName, String DownloadFileMimeType, String BinaryData,boolean isbase64){
-        // Show the bottom sheet
-
-        //webView.getSettings().setJavaScriptEnabled(true);
-        String base64Image = "data:"+DownloadFileMimeType+";base64," + BinaryData; // Ensure BinaryData is your base64 string without the data URL prefix
-        String html = "<html><body style='margin:0;padding:0;'><img src='" + base64Image + "' style='width:100%;height:auto;'/></body></html>";
-        webView.loadData(html, "text/html", "UTF-8");
-
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.getSettings().setBuiltInZoomControls(true); // Enable zoom controls
-        webView.getSettings().setDisplayZoomControls(false); // Hide the zoom controls
-        webView.getSettings().setSupportZoom(true); // Enable zoom support
-        //webView.loadData(BinaryData, DownloadFileMimeType, "base64");
-        if(webView != null){
-            webView.setVisibility(View.VISIBLE);
-            buttonClose.setVisibility(View.VISIBLE);
+    public static void showDocument(String DownloadFileName, String DownloadFileMimeType, String BinaryData, boolean isbase64) {
+        if (buttonClose == null) {
+            Log.e("BottomSheetChat", "Views are not initialized. Cannot show document.");
+            return;
         }
 
+        // --- Hide both views initially to prevent flicker ---
+        if (webView != null) webView.setVisibility(View.GONE);
+        if (pdfView != null) pdfView.setVisibility(View.GONE);
+
+        // --- Logic to handle different file types ---
+        if (DownloadFileMimeType.startsWith("image/")) {
+            if (webView == null) return;
+            // --- Strategy for Images (PNG, JPG, etc.) ---
+            webView.getSettings().setJavaScriptEnabled(true);
+            webView.getSettings().setSupportZoom(true);
+
+            String base64Image = "data:" + DownloadFileMimeType + ";base64," + BinaryData;
+            String html = "<html><body style='margin:0;padding:0;background-color:black;'><img src='" + base64Image + "' style='width:100%;height:auto;display:block;margin:auto;'/></body></html>";
+            webView.loadData(html, "text/html", "UTF-8");
+
+            webView.setVisibility(View.VISIBLE);
+
+        } else if (DownloadFileMimeType.equals("application/pdf")) {
+            if (pdfView == null) return;
+            // --- NEW, ROBUST STRATEGY FOR PDFs using the library ---
+            final byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
+
+            pdfView.fromBytes(pdfData)
+                    .enableSwipe(true) // allow swiping pages
+                    .swipeHorizontal(false)
+                    .enableDoubletap(true)
+                    .defaultPage(0)
+                    .onError(t -> {
+                        Log.e("PDFView", "Error loading PDF", t);
+                    })
+                    .onPageError((page, t) -> {
+                        Log.e("PDFView", "Error on page " + page, t);
+                    })
+                    .load();
+
+            pdfView.setVisibility(View.VISIBLE);
+
+        } else {
+            // --- Fallback for unsupported types ---
+            if (webView == null) return;
+            Log.w("BottomSheetChat", "Unsupported file type for preview: " + DownloadFileMimeType);
+            webView.loadData("<html><body>Preview is not available for this file type.</body></html>", "text/html", "UTF-8");
+            webView.setVisibility(View.VISIBLE);
+        }
+
+        // Make the close button visible
+        buttonClose.setVisibility(View.VISIBLE);
     }
+
 
     private static Activity unwrap(Context context) {
         while (context instanceof ContextWrapper) {

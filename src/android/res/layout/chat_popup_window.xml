@@ -24,6 +24,16 @@
         android:visibility="gone"
         android:layout_below="@id/close_button" />
 
+    <!-- ADD THE PDFVIEW -->
+    <com.github.barteksc.pdfviewer.PDFView
+        android:id="@+id/pdfView"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_weight="1"
+        android:visibility="gone"
+        android:layout_below="@id/close_button"
+        />
+
     <TextView
         android:id="@+id/chatTitle"
         android:layout_width="wrap_content"
