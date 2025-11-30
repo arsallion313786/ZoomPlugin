@@ -17,9 +17,9 @@
             </feature>
         </config-file>
         
-        <config-file target="AndroidManifest.xml" parent="/manifest">
-                <uses-sdk android:minSdkVersion="28" />
-            </config-file>
+<!--        <config-file target="AndroidManifest.xml" parent="/manifest">-->
+<!--                <uses-sdk android:minSdkVersion="28" />-->
+<!--            </config-file>-->
         
 
         <config-file target="AndroidManifest.xml" parent="/*">
@@ -116,7 +116,7 @@
         <framework src="androidx.security:security-crypto:1.1.0-alpha03" />
         <framework src="com.google.crypto.tink:tink-android:1.5.0" />
         <framework src="androidx.appcompat:appcompat:1.3.0" />
-        <framework src="build-extras.gradle" custom="true" type="gradleReference" />
+<!--        <framework src="build-extras.gradle" custom="true" type="gradleReference" />-->
         <framework src="com.github.mhiew:android-pdf-viewer:3.2.0-beta.1" />
         <source-file src="src/android/mobilertc.aar" target-dir="libs" />
 <!--        <hook type="after_plugin_install" src="android_hooks/after_plugin_install.js" />-->
