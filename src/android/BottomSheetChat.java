@@ -415,7 +415,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
                     String extension = file.getAbsolutePath().substring(file.getAbsolutePath().lastIndexOf("."));
                     extension = extension.replace(".", "");
 
-                    BottomSheetChat.showDocument(file.getName(), MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension),base64, true);
+                    //BottomSheetChat.showDocument(file.getName(), MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension),base64, true);
                     JSONObject filedata = new JSONObject();
                     try {
                         filedata.put("base64", base64);
