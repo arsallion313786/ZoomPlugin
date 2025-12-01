@@ -102,7 +102,9 @@ public class ZoomVideo extends CordovaPlugin {
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
-        //SessionActivity.chatBottomSheetFragment
+        //SessionActivity.
+
+
 
         showDoc(DownloadFileName,DownloadFileMimeType,BinaryData, isBase64String);
         //BottomSheetChat.showDocument(this.DownloadFileName,this.DownloadFileMimeType,this.BinaryData);
@@ -128,7 +130,14 @@ public class ZoomVideo extends CordovaPlugin {
         cordova.getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                BottomSheetChat.showDocument(downloadFileName, downloadFileMimeType, binaryData,isBase64String);
+                SessionActivity activity = SessionActivity.getInstance();
+
+                if (activity != null) {
+                    // Call the new public method on the activity instance
+                    activity.showAttachmentViewer(downloadFileName, downloadFileMimeType, binaryData);
+                } else {
+                    Log.e("ZoomVideoPlugin", "SessionActivity is not active, cannot show document.");
+                }
             }
         });
     }

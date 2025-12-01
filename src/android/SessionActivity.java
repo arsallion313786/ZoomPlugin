@@ -36,6 +36,7 @@ import android.os.Handler;
 
 import android.os.Parcelable;
 import android.provider.Settings;
+import android.util.Base64;
 import android.util.Log;
 import android.util.Rational;
 import android.view.Display;
@@ -50,6 +51,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -192,10 +196,16 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
     public  static  boolean isOpenedGalleryForImage = false;
     private List<ChatMessage> chatMessages = new ArrayList<>();
 
+    private static SessionActivity instance;
+
 
 
     public static int getResourceId(Context context, String group, String key) {
         return context.getResources().getIdentifier(key, group, context.getPackageName());
+    }
+
+    public  static  SessionActivity getInstance(){
+        return instance;
     }
 
 //    private String getJWT(){
@@ -486,6 +496,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         context = this;
+        instance = this; // This line is crucial
         Log.d("oncreate", "onCreate:trigger ");
         setContentView(getResourceId(context, LAYOUT, "activity_video"));
 
@@ -810,7 +821,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
     @Override
     public void onError(int errorCode) {
-
+        Log.i("SessionActivity", "on session leave called");
     }
 
     @Override
@@ -1361,6 +1372,29 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
        // chatBottomSheetFragment.updateChatMessages(chatMessages);
       //  Log.d("chatMessage", "onChatNewMessageNotify: "+chatMessages.size());
+    }
+
+    public void showAttachmentViewer(String fileName, String mimeType, String binaryData) {
+        try {
+            // 1. Create a temporary file
+            File tempFile = new File(getCacheDir(), fileName);
+            byte[] fileData = Base64.decode(binaryData, Base64.DEFAULT);
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(fileData);
+            }
+
+            // 2. Create and show the DialogFragment
+            AttachmentViewerDialogFragment viewerFragment = AttachmentViewerDialogFragment.newInstance(
+                    mimeType,
+                    tempFile.getAbsolutePath()
+            );
+
+            // *** CRITICAL FIX: Use getSupportFragmentManager() for an Activity ***
+            viewerFragment.show(getSupportFragmentManager(), "AttachmentViewer");
+
+        } catch (IOException e) {
+            Log.e("SessionActivity", "Failed to create or write to temporary file", e);
+        }
     }
 
     private void startTimer() {

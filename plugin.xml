@@ -84,6 +84,7 @@
         <resource-file src="src/android/res/layout/chat_popup_window.xml" target="res/layout/chat_popup_window.xml" />
         <resource-file src="src/android/res/layout/item_chat_message.xml" target="res/layout/item_chat_message.xml" />
         <resource-file src="src/android/res/layout/video_controls_layout.xml" target="res/layout/video_controls_layout.xml" />
+        <resource-file src="src/android/res/layout/activity_attachment_viewer.xml" target="res/layout/activity_attachment_viewer.xml" />
       
         <resource-file src="src/android/res/values/twilio_colors.xml" target="res/values/twilio_colors.xml" />
         <resource-file src="src/android/res/values/colors.xml" target="res/values/colors.xml" />
@@ -101,6 +102,7 @@
         <source-file src="src/android/BottomSheetChat.java" target-dir="src/cordova/plugin/zoomvideo" />
         <source-file src="src/android/ChatAdapter.java" target-dir="src/cordova/plugin/zoomvideo" />
         <source-file src="src/android/ChatMessage.java" target-dir="src/cordova/plugin/zoomvideo" />
+        <source-file src="src/android/AttachmentViewerDialogFragment.java" target-dir="src/cordova/plugin/zoomvideo" />
 <!--        <source-file src="src/android/proguard-rules.pro" target-dir="" />-->
 <!--        //-->
         

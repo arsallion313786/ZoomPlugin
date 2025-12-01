@@ -416,6 +416,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
                     extension = extension.replace(".", "");
 
                     //BottomSheetChat.showDocument(file.getName(), MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension),base64, true);
+                    //openAttachmentViewer(file.getName(), MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension),base64);
                     JSONObject filedata = new JSONObject();
                     try {
                         filedata.put("base64", base64);
@@ -444,67 +445,127 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
 
 
     public static void showDocument(String DownloadFileName, String DownloadFileMimeType, String BinaryData, boolean isbase64) {
-        if (buttonClose == null) {
-            Log.e("BottomSheetChat", "Views are not initialized. Cannot show document.");
+
+        if (context == null) {
+            Log.e("BottomSheetChat", "Context is null, cannot start viewer activity.");
             return;
         }
 
-        // --- Hide both views initially to prevent flicker ---
-        if (webView != null) webView.setVisibility(View.GONE);
-        //if (pdfView != null) pdfView.setVisibility(View.GONE);
+        // --- STRATEGY CHANGE: Save data to a file instead of passing it in the Intent ---
+        try {
+            // 1. Create a temporary file in the app's cache directory.
+            File tempFile = new File(context.getCacheDir(), DownloadFileName);
 
-        // --- Logic to handle different file types ---
-        if (DownloadFileMimeType.startsWith("image/")) {
-            if (webView == null) return;
-            // --- Strategy for Images (PNG, JPG, etc.) ---
-            webView.getSettings().setJavaScriptEnabled(true);
-            webView.getSettings().setSupportZoom(true);
-
-            String base64Image = "data:" + DownloadFileMimeType + ";base64," + BinaryData;
-            String html = "<html><body style='margin:0;padding:0;background-color:black;'><img src='" + base64Image + "' style='width:100%;height:auto;display:block;margin:auto;'/></body></html>";
-            webView.loadData(html, "text/html", "UTF-8");
-
-            webView.setVisibility(View.VISIBLE);
-
-        }
-        else if (DownloadFileMimeType.equals("application/pdf")) {
-            if (pdfImageView == null) return;
-            // --- NEW, NATIVE STRATEGY FOR PDFs ---
-            try {
-                // First, clean up any previously opened PDF
-                closePdfRenderer();
-
-                final byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
-                File tempFile = new File(context.getCacheDir(), "temp_pdf.pdf");
-                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                    fos.write(pdfData);
-                }
-
-                parcelFileDescriptor = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY);
-                pdfRenderer = new PdfRenderer(parcelFileDescriptor);
-
-                // Show the first page (index 0)
-                currentPageIndex = 0;
-                showPdfPage(currentPageIndex);
-
-                pdfImageView.setVisibility(View.VISIBLE);
-                pdfNavigationControls.setVisibility(View.VISIBLE);
-
-            } catch (Exception e) {
-                Log.e("PDFRenderer", "Error rendering PDF", e);
-                // Handle error...
+            // 2. Decode the Base64 string and write it to the temporary file.
+            byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(pdfData);
             }
-        }
-        else {
-            // --- Fallback for unsupported types ---
-            if (webView == null) return;
-            Log.w("BottomSheetChat", "Unsupported file type for preview: " + DownloadFileMimeType);
-            webView.loadData("<html><body>Preview is not available for this file type.</body></html>", "text/html", "UTF-8");
-            webView.setVisibility(View.VISIBLE);
+
+            // --- Create an Intent to start the new Activity ---
+//            Intent intent = new Intent(context, AttachmentViewerActivity.class);
+//
+//            // --- Pass the METADATA and the FILE PATH (not the huge data) ---
+//            intent.putExtra("mimeType", DownloadFileMimeType);
+//            intent.putExtra("filePath", tempFile.getAbsolutePath()); // Pass the path to the file
+//
+//            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            // --- Start the Activity ---
+            //context.startActivity(intent);
+
+        } catch (IOException e) {
+            Log.e("BottomSheetChat", "Failed to create or write to temporary file", e);
+            // Optionally, show an error message to the user
         }
 
-        // Make the close button visible
-        buttonClose.setVisibility(View.VISIBLE);
+
+//        if (buttonClose == null) {
+//            Log.e("BottomSheetChat", "Views are not initialized. Cannot show document.");
+//            return;
+//        }
+//
+//        // --- Hide both views initially to prevent flicker ---
+//        if (webView != null) webView.setVisibility(View.GONE);
+//        //if (pdfView != null) pdfView.setVisibility(View.GONE);
+//
+//        // --- Logic to handle different file types ---
+//        if (DownloadFileMimeType.startsWith("image/")) {
+//            if (webView == null) return;
+//            // --- Strategy for Images (PNG, JPG, etc.) ---
+//            webView.getSettings().setJavaScriptEnabled(true);
+//            webView.getSettings().setSupportZoom(true);
+//
+//            String base64Image = "data:" + DownloadFileMimeType + ";base64," + BinaryData;
+//            String html = "<html><body style='margin:0;padding:0;background-color:black;'><img src='" + base64Image + "' style='width:100%;height:auto;display:block;margin:auto;'/></body></html>";
+//            webView.loadData(html, "text/html", "UTF-8");
+//
+//            webView.setVisibility(View.VISIBLE);
+//
+//        }
+//        else if (DownloadFileMimeType.equals("application/pdf")) {
+//            if (pdfImageView == null) return;
+//            // --- NEW, NATIVE STRATEGY FOR PDFs ---
+//            try {
+//                // First, clean up any previously opened PDF
+//                closePdfRenderer();
+//
+//                final byte[] pdfData = Base64.decode(BinaryData, Base64.DEFAULT);
+//                File tempFile = new File(context.getCacheDir(), "temp_pdf.pdf");
+//                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+//                    fos.write(pdfData);
+//                }
+//
+//                parcelFileDescriptor = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY);
+//                pdfRenderer = new PdfRenderer(parcelFileDescriptor);
+//
+//                // Show the first page (index 0)
+//                currentPageIndex = 0;
+//                showPdfPage(currentPageIndex);
+//
+//                pdfImageView.setVisibility(View.VISIBLE);
+//                pdfNavigationControls.setVisibility(View.VISIBLE);
+//
+//            } catch (Exception e) {
+//                Log.e("PDFRenderer", "Error rendering PDF", e);
+//                // Handle error...
+//            }
+//        }
+//        else {
+//            // --- Fallback for unsupported types ---
+//            if (webView == null) return;
+//            Log.w("BottomSheetChat", "Unsupported file type for preview: " + DownloadFileMimeType);
+//            webView.loadData("<html><body>Preview is not available for this file type.</body></html>", "text/html", "UTF-8");
+//            webView.setVisibility(View.VISIBLE);
+//        }
+//
+//        // Make the close button visible
+//        buttonClose.setVisibility(View.VISIBLE);
+    }
+
+    public void openAttachmentViewer(String fileName, String mimeType, String binaryData) {
+        if (getContext() == null) return;
+
+        try {
+            // 1. Create a temporary file
+            File tempFile = new File(getContext().getCacheDir(), fileName);
+            byte[] fileData = Base64.decode(binaryData, Base64.DEFAULT);
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(fileData);
+            }
+
+            // 2. Create and show the DialogFragment
+            AttachmentViewerDialogFragment viewerFragment = AttachmentViewerDialogFragment.newInstance(
+                    mimeType,
+                    tempFile.getAbsolutePath()
+            );
+
+            // *** CRITICAL CHANGE: Show the dialog ***
+            viewerFragment.show(getParentFragmentManager(), "AttachmentViewer");
+
+        } catch (IOException e) {
+            Log.e("BottomSheetChat", "Failed to create or write to temporary file", e);
+        }
     }
 
 
