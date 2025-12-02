@@ -1,6 +1,11 @@
 package cordova.plugin.zoomvideo;
 
-public class ChatMessage {
+// Add this import at the top of the file
+import java.io.Serializable;
+
+// Add "implements Serializable" to your class definition
+public class ChatMessage implements Serializable {
+
     private String sender;
     private String message;
 
@@ -17,3 +22,4 @@ public class ChatMessage {
         return message;
     }
 }
+

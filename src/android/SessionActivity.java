@@ -60,6 +60,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import android.content.Context;
+import android.content.Intent;
+import org.json.JSONObject;
+
 
 import us.zoom.sdk.IncomingLiveStreamStatus;
 import us.zoom.sdk.RealTimeMediaStreamsFailReason;
@@ -315,7 +320,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
             sdk.addListener(this);
         } else {
             // Something went wrong, see error code documentation
-           // Log.e("ZoomSDK", "Initialization result: errorCode=" + errorCode + ", internalErrorCode=" + internalErrorCode);
+            // Log.e("ZoomSDK", "Initialization result: errorCode=" + errorCode + ", internalErrorCode=" + internalErrorCode);
             Log.e("SessionActivity", "Initialize SDK error: " + initResult	);
         }
     }
@@ -543,12 +548,12 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
             this.startingWaitingMessage = intent.getStringExtra("waitingMessage");
             this.primaryUserSpeciality = intent.getStringExtra("primaryUserSpeciality");
             this.primaryUserSpeciality = "--";
-           //this.jwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfa2V5IjoiellGM2QyQVoyRTZudTlTaXc0UVlRMTVRZW1VU0M0dDlxTmE2Iiwicm9sZV90eXBlIjoxLCJ0cGMiOiJCdXBhMTIzIiwidmVyc2lvbiI6MSwiaWF0IjoxNzMyMTkyNjM5LCJleHAiOjE3MzIxOTYyMzl9.zt0sij0I_eT6Y_Pw1Zuh7SuTSKQ5FFaAheI5iB_V4Cs";//intent.getStringExtra("jwtToken");
-           // this.sessionName = "Bupa123";//intent.getStringExtra("sessionName");
-           // this.userName = "Hasnain";//intent.getStringExtra("userName");
-           // this.domain = "zoom.us";//intent.getStringExtra("domain");
-           // this.startingWaitingMessage = "wait participant will join call";//intent.getStringExtra("waitingMessage");
-          //  this.primaryUserSpeciality = "Family Doctor";//intent.getStringExtra("primaryUserSpeciality");
+            //this.jwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfa2V5IjoiellGM2QyQVoyRTZudTlTaXc0UVlRMTVRZW1VU0M0dDlxTmE2Iiwicm9sZV90eXBlIjoxLCJ0cGMiOiJCdXBhMTIzIiwidmVyc2lvbiI6MSwiaWF0IjoxNzMyMTkyNjM5LCJleHAiOjE3MzIxOTYyMzl9.zt0sij0I_eT6Y_Pw1Zuh7SuTSKQ5FFaAheI5iB_V4Cs";//intent.getStringExtra("jwtToken");
+            // this.sessionName = "Bupa123";//intent.getStringExtra("sessionName");
+            // this.userName = "Hasnain";//intent.getStringExtra("userName");
+            // this.domain = "zoom.us";//intent.getStringExtra("domain");
+            // this.startingWaitingMessage = "wait participant will join call";//intent.getStringExtra("waitingMessage");
+            //  this.primaryUserSpeciality = "Family Doctor";//intent.getStringExtra("primaryUserSpeciality");
 
             chatBottomSheetFragment = new BottomSheetChat(this.chatMessages,this);
             // Check camera and microphone permissions
@@ -557,15 +562,15 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         }
 
 
-            initializeViews();
-            initializeSDK();
-            if (!checkPermissionForCameraAndMicrophone()) {
-                requestPermissionForCameraAndMicrophone();
-            } else {
-                joinSession(savedInstanceState);
-            }
+        initializeViews();
+        initializeSDK();
+        if (!checkPermissionForCameraAndMicrophone()) {
+            requestPermissionForCameraAndMicrophone();
+        } else {
+            joinSession(savedInstanceState);
+        }
 
-            waitingMessageTextView.setText(this.startingWaitingMessage);
+        waitingMessageTextView.setText(this.startingWaitingMessage);
 
 //            Rect sourceRectHint = new Rect();
 //            primaryVideoView.getGlobalVisibleRect(sourceRectHint);
@@ -646,9 +651,27 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         /*
          * If the video was stopped when the app was put in the background, start again.
          */
-        if(sdk.isInSession() && shouldVideoBeOn) {
-            sdk.getVideoHelper().startVideo();
-        }
+
+        new Handler().postDelayed(() -> {
+            if (ZoomVideoSDK.getInstance().isInSession()) {
+                if(sdk.isInSession() && shouldVideoBeOn) {
+
+                    shouldVideoBeOn = true;
+                    sdk.getVideoHelper().startVideo();
+                    var icon = getResourceId(context,DRAWABLE,("icon_camera"));
+                    switchCameraActionFab.setVisibility(View.VISIBLE);
+
+                localVideoActionFab.setImageDrawable(ContextCompat.getDrawable(SessionActivity.this, icon));
+
+
+                }
+                else if(!sdk.isInSession() && shouldVideoBeOn){
+                    sdk.getVideoHelper().startVideo();
+                }
+            }
+        }, 2000);
+
+
         startTimer();
     }
 
@@ -657,9 +680,9 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 //    public void onUserLeaveHint () {
 //
 //
-////        if(ZoomVideoSDK.getInstance().isInSession() && shouldVideoBeOn) {
-////            ZoomVideoSDK.getInstance().getVideoHelper().stopVideo();
-////        }
+    ////        if(ZoomVideoSDK.getInstance().isInSession() && shouldVideoBeOn) {
+    ////            ZoomVideoSDK.getInstance().getVideoHelper().stopVideo();
+    ////        }
 //
 //        handler.removeCallbacks(runnable);
 //        super.onUserLeaveHint();
@@ -700,6 +723,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
 
         super.onStop();
+        unregisterReceiver(headsetReceiver);
     }
     @Override
     protected void onDestroy() {
@@ -732,6 +756,33 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         super.onDestroy();
 
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        // Register your listeners (you already do this, which is correct)
+        IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+        registerReceiver(headsetReceiver, filter);
+
+
+
+        // --- THIS IS THE NEW, CRITICAL FIX ---
+        // Manually refresh the local video state every time the activity becomes visible.
+        // We use post() to ensure this runs after the UI is fully ready.
+        new Handler().postDelayed(() -> {
+            if (ZoomVideoSDK.getInstance().isInSession()) {
+                if (shouldVideoBeOn) {
+                    // If the video is supposed to be on, explicitly start it again.
+                    // This forces the SDK to re-acquire the camera and restart the stream.
+                    ZoomVideoSDK.getInstance().getVideoHelper().startVideo();
+                } else {
+                    // If it's supposed to be off, ensure it's stopped.
+                    ZoomVideoSDK.getInstance().getVideoHelper().stopVideo();
+                }
+            }
+        }, 500); // A small delay of 500ms is often helpful to avoid race conditions with the SDK's own resume logic.
     }
 
     @Override
@@ -771,7 +822,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         this.progressBar.setVisibility(View.GONE);
         this.videoControls.setVisibility(View.VISIBLE);
 
-       this.disconnectActionFab.setVisibility(View.GONE);
+        this.disconnectActionFab.setVisibility(View.GONE);
 //        this.switchCameraActionFab.setVisibility(View.VISIBLE);
 //        this.localVideoActionFab.setVisibility(View.VISIBLE);
 //        this.muteActionFab.setVisibility(View.VISIBLE);
@@ -951,17 +1002,18 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
     @Override
     public void onChatNewMessageNotify(ZoomVideoSDKChatHelper chatHelper, ZoomVideoSDKChatMessage messageItem) {
-        //Handle the received chat message
         String content = messageItem.getContent();
         String senderName = messageItem.getSenderUser().getUserName();
-        //if (chatBottomSheetFragment != null && chatBottomSheetFragment.isVisible()) {
-       //     chatBottomSheetFragment.updateChatMessages(chatMessages);
-       //     Log.d("chatMessage", "onChatNewMessageNotify: "+chatMessages.size());
-      //  }
-        runOnUiThread(() -> {
-            // Update your UI with the new message
-            chatBottomSheetFragment.addMessage(new ChatMessage(senderName,content));
-        });
+
+
+        // Add the new message to the master list in SessionActivity
+        chatMessages.add(new ChatMessage(senderName, content));
+
+        // Broadcast the new message so that if ChatActivity is open, it will update instantly.
+        Intent intent = new Intent("new-chat-message");
+        intent.putExtra("senderName", senderName);
+        intent.putExtra("content", content);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     @Override
@@ -1216,7 +1268,6 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
     @Override
     public void onIncomingLiveStreamStatusResponse(boolean bSuccess, List<IncomingLiveStreamStatus> streamsStatusList) {
-
     }
 
     @Override
@@ -1368,10 +1419,13 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 //
 //            }
 //        }
-        chatBottomSheetFragment.show(getSupportFragmentManager(), "chat_bottom_sheet");
+        Intent intent = new Intent(SessionActivity.this, ChatActivity.class);
+        intent.putExtra("chat_history", (Serializable) chatMessages);
+        startActivity(intent);
+        // chatBottomSheetFragment.show(getSupportFragmentManager(), "chat_bottom_sheet");
 
-       // chatBottomSheetFragment.updateChatMessages(chatMessages);
-      //  Log.d("chatMessage", "onChatNewMessageNotify: "+chatMessages.size());
+        // chatBottomSheetFragment.updateChatMessages(chatMessages);
+        //  Log.d("chatMessage", "onChatNewMessageNotify: "+chatMessages.size());
     }
 
     public void showAttachmentViewer(String fileName, String mimeType, String binaryData) {
@@ -1455,7 +1509,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         }
     }
 
-    @Override 
+    @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
         if (isInPictureInPictureMode) {
@@ -1501,3 +1555,4 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
 
 }
+

@@ -5,27 +5,39 @@ import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.LOG;
-
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.content.Intent;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
-import us.zoom.sdk.ZoomVideoSDK;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+// Note: us.zoom.sdk.ZoomVideoSDK import is removed as it's not used in this file,
+// but it's fine if your original file needs it for other reasons.
 
 public class ZoomVideo extends CordovaPlugin {
+    // Callbacks for JS listeners
     private CallbackContext callbackContext;
     private static CallbackContext fileUploadCallbackContext;
     private static CallbackContext sendDocumentMetaDataContext;
     private static CallbackContext addDownloadFileListenerContext;
     private static CallbackContext sendFileDataContext;
-    private CordovaInterface cordova;
 
+    // Static instance for access from other classes (like ChatActivity)
+    private static ZoomVideo instance;
+
+    // Member variables for state
     private String jwtToken;
     private String sessionName;
     private String userName;
@@ -35,41 +47,44 @@ public class ZoomVideo extends CordovaPlugin {
     private String documentID;
     private String fileName;
     private String fileMimetype;
-    private String BinaryData;
-    private boolean isBase64String;
-    private String DownloadFileName;
-    private String DownloadFileMimeType;
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
-        this.cordova = cordova;
+        // Set the static instance when the plugin is initialized
+        instance = this;
     }
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-
-        if (action.equals("openSession")) {
+        // Your execute method remains largely the same, but we will use the static instance
+        // for better consistency.
+        if ("openSession".equals(action)) {
             this.callbackContext = callbackContext;
             this.openSession(args);
-        }
-        else if (action.equals("addFileUploadListener")) {
+            return true;
+        } else if ("addFileUploadListener".equals(action)) {
             fileUploadCallbackContext = callbackContext;
-        }
-        else if(action.equals("sendDocumentMetaData")){
+            return true;
+        } else if ("sendDocumentMetaData".equals(action)) {
             sendDocumentMetaDataContext = callbackContext;
             this.sendFileURL(args);
-        }else if (action.equals("addDownloadFileListener")) {
+            return true;
+        } else if ("addDownloadFileListener".equals(action)) {
             addDownloadFileListenerContext = callbackContext;
-            } else if(action.equals("sendFileData")){
+            return true;
+        } else if ("sendFileData".equals(action)) {
             sendFileDataContext = callbackContext;
             this.ShowDocument(args);
-        }
- 	    else if (action.equals("handleSuccessErrorMessage")) {
+            return true;
+        } else if ("handleSuccessErrorMessage".equals(action)) {
             this.HandleSuccessErrorMessage(args);
+            return true;
         }
-        return true;
+        return false; // Action not found
     }
+
+    // --- Methods related to Chat and File Upload (UNCHANGED) ---
 
     private void sendFileURL(final JSONArray args) {
         try {
@@ -79,72 +94,100 @@ public class ZoomVideo extends CordovaPlugin {
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
-        String URL = "https://fileupload.bupa.com.sa/#"+this.documentID+"#"+this.fileName+"#"+this.fileMimetype;
+        String URL = "https://fileupload.bupa.com.sa/#" + this.documentID + "#" + this.fileName + "#" + this.fileMimetype;
         sendURL(URL);
-
     }
 
-    public void sendURL(String URL){
-        cordova.getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                BottomSheetChat.sendMessage(URL);
+    public void sendURL(String URL) {
+        // Get the application context from Cordova
+        Context context = cordova.getActivity().getApplicationContext();
+
+        // Create an Intent with a custom action string
+        Intent intent = new Intent("custom-message-event");
+
+        // Add the URL as an extra
+        intent.putExtra("message", URL);
+
+        // Send the broadcast
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+    }
+
+    public static void registerFileUploadListener(JSONObject fileData) {
+        if (fileUploadCallbackContext != null) {
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, fileData);
+            pluginResult.setKeepCallback(true);
+            fileUploadCallbackContext.sendPluginResult(pluginResult);
+        }
+    }
+
+    // --- Methods for Document Preview (UPDATED) ---
+
+    public void ShowDocument(final JSONArray args) {
+        try {
+            String downloadFileName = args.getString(0);
+            String downloadFileMimeType = args.getString(1);
+            String binaryData = args.getString(2);
+            // boolean isBase64String = args.getBoolean(3); // This variable wasn't used
+
+            // Call the new, robust method for showing the document
+            showDocumentPreview(downloadFileName, downloadFileMimeType, binaryData);
+
+        } catch (JSONException e) {
+            if (sendFileDataContext != null) {
+                sendFileDataContext.error("Invalid arguments for ShowDocument: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * This is the static bridge method for any native class (e.g., ChatActivity) to call.
+     * It creates a temporary file and uses the cordova-outsystems-file-viewer plugin
+     * via the JavaScript bridge to display it.
+     */
+    public static void showDocumentPreview(String fileName, String mimeType, String binaryData) {
+        if (instance == null || instance.webView == null) {
+            Log.e("ZoomVideoPlugin", "Plugin not initialized, cannot show document preview.");
+            return;
+        }
+
+        instance.cordova.getThreadPool().execute(() -> {
+            try {
+                File cacheDir = instance.cordova.getContext().getCacheDir();
+                File tempFile = new File(cacheDir, fileName);
+
+                byte[] fileData = Base64.decode(binaryData, Base64.DEFAULT);
+                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                    fos.write(fileData);
+                }
+                String filePath = tempFile.getAbsolutePath();
+
+                final String js = "cordova.plugins.fileViewer.open('" + filePath + "', '" + mimeType + "', { "
+                        + "onClose: function() { console.log('File viewer closed'); } "
+                        + "});";
+
+                instance.cordova.getActivity().runOnUiThread(() -> {
+                    instance.webView.loadUrl("javascript:" + js);
+                });
+
+            } catch (IOException e) {
+                Log.e("ZoomVideoPlugin", "Failed to create temp file for viewer.", e);
             }
         });
     }
-    public void ShowDocument(final JSONArray args) {
-        try {
-            this.DownloadFileName = args.getString(0);
-            this.DownloadFileMimeType = args.getString(1);
-            this.BinaryData = args.getString(2);
-            this.isBase64String = args.getBoolean(3);
 
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
-        //SessionActivity.
-
-
-
-        showDoc(DownloadFileName,DownloadFileMimeType,BinaryData, isBase64String);
-        //BottomSheetChat.showDocument(this.DownloadFileName,this.DownloadFileMimeType,this.BinaryData);
-    }
+    // --- Other Plugin Methods (UNCHANGED) ---
 
     public void HandleSuccessErrorMessage(final JSONArray args) {
         try {
-            String alertType = args.getString(0);
             String alertMessage = args.getString(1);
-
-            cordova.getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(cordova.getActivity(), alertMessage, Toast.LENGTH_LONG).show();
-                }
-            });
+            cordova.getActivity().runOnUiThread(() -> Toast.makeText(cordova.getActivity(), alertMessage, Toast.LENGTH_LONG).show());
         } catch (JSONException e) {
-            throw new RuntimeException(e);
+            // It's better to log the error than to crash the app
+            Log.e("ZoomVideo", "Error processing toast message arguments.", e);
         }
     }
 
-    public  void showDoc(String downloadFileName, String downloadFileMimeType, String binaryData, boolean isBase64String){
-        cordova.getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                SessionActivity activity = SessionActivity.getInstance();
-
-                if (activity != null) {
-                    // Call the new public method on the activity instance
-                    activity.showAttachmentViewer(downloadFileName, downloadFileMimeType, binaryData);
-                } else {
-                    Log.e("ZoomVideoPlugin", "SessionActivity is not active, cannot show document.");
-                }
-            }
-        });
-    }
-
-
     private void openSession(final JSONArray args) {
-
         try {
             this.jwtToken = args.getString(0);
             this.sessionName = args.getString(1);
@@ -153,56 +196,32 @@ public class ZoomVideo extends CordovaPlugin {
             this.waitingMessage = args.getString(5);
             this.primaryUserSpeciality = args.getString(4);
 
-            final String jwtToken = this.jwtToken;
-            final String sessionName = this.sessionName;
-            final String userName = this.userName;
-            final String domain = this.domain;
-            final String waitingMessage = this.waitingMessage;
-            final String primaryUserSpeciality = this.primaryUserSpeciality;
-
             final CordovaPlugin that = this;
-            cordova.getThreadPool().execute(new Runnable() {
-                public void run() {
-                    Intent intentZoomVideo = new Intent(that.cordova.getActivity().getBaseContext(), SessionActivity.class);
-                    intentZoomVideo.putExtra("jwtToken", jwtToken);
-                    intentZoomVideo.putExtra("sessionName", sessionName);
-                    intentZoomVideo.putExtra("userName", userName);
-                    intentZoomVideo.putExtra("domain", domain);
-                    intentZoomVideo.putExtra("waitingMessage", waitingMessage);
-                    intentZoomVideo.putExtra("primaryUserSpeciality", primaryUserSpeciality);
-
-                    that.cordova.startActivityForResult(that, intentZoomVideo, 0);
-                }
+            cordova.getThreadPool().execute(() -> {
+                Intent intentZoomVideo = new Intent(that.cordova.getActivity().getBaseContext(), SessionActivity.class);
+                intentZoomVideo.putExtra("jwtToken", jwtToken);
+                intentZoomVideo.putExtra("sessionName", sessionName);
+                intentZoomVideo.putExtra("userName", userName);
+                intentZoomVideo.putExtra("domain", domain);
+                intentZoomVideo.putExtra("waitingMessage", waitingMessage);
+                intentZoomVideo.putExtra("primaryUserSpeciality", primaryUserSpeciality);
+                that.cordova.startActivityForResult(that, intentZoomVideo, 0);
             });
         } catch (JSONException e) {
-            LOG.e("ROOM", "Invalid JSON string: ", e);
+            LOG.e("ZoomVideo", "Invalid JSON string for openSession: ", e);
+            callbackContext.error("Invalid JSON arguments for openSession.");
         }
     }
 
     public static void registerDownloadFileListener(JSONObject fileData) {
-        // Example of registering a listener for file upload events
-
-        Log.v("", "----- file json data " + fileData);
-        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, fileData);
-        pluginResult.setKeepCallback(true);
         if (addDownloadFileListenerContext != null) {
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, fileData);
+            pluginResult.setKeepCallback(true);
             addDownloadFileListenerContext.sendPluginResult(pluginResult);
         }
-
     }
 
-    public static void registerFileUploadListener(JSONObject fileData) {
-        // Example of registering a listener for file upload events
-
-        Log.v("", "----- file json data " + fileData);
-        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, fileData);
-        pluginResult.setKeepCallback(true);
-        if (fileUploadCallbackContext != null) {
-            fileUploadCallbackContext.sendPluginResult(pluginResult);
-        }
-
-    }
-
+    @Override
     public Bundle onSaveInstanceState() {
         Bundle state = new Bundle();
         state.putString("jwtToken", this.jwtToken);
@@ -213,6 +232,7 @@ public class ZoomVideo extends CordovaPlugin {
         return state;
     }
 
+    @Override
     public void onRestoreStateForActivityResult(Bundle state, CallbackContext callbackContext) {
         this.jwtToken = state.getString("jwtToken");
         this.sessionName = state.getString("sessionName");

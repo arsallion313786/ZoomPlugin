@@ -202,7 +202,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
         btnUpload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SessionActivity.isOpenedGalleryForImage = true;
+               // SessionActivity.isOpenedGalleryForImage = true;
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("*/*");
@@ -364,7 +364,7 @@ public class BottomSheetChat extends BottomSheetDialogFragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        SessionActivity.isOpenedGalleryForImage = false;
+        //SessionActivity.isOpenedGalleryForImage = false;
         if (requestCode == FILE_SELECT_CODE && resultCode == RESULT_OK) {
             if (data != null) {
 
