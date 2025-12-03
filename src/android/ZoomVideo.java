@@ -16,8 +16,6 @@ import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
 
-import us.zoom.sdk.ZoomVideoSDK;
-
 public class ZoomVideo extends CordovaPlugin {
     private CallbackContext callbackContext;
     private static CallbackContext fileUploadCallbackContext;

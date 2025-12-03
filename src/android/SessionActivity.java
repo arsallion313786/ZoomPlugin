@@ -1,6 +1,6 @@
 package cordova.plugin.zoomvideo;
 
-import static android.os.Build.VERSION.SDK_INT;
+
 
 
 import android.Manifest;
@@ -11,19 +11,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.Rect;
 import android.graphics.drawable.Icon;
 import android.media.AudioManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
@@ -31,11 +27,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
 
 
-import android.os.Environment;
+
 import android.os.Handler;
 
-import android.os.Parcelable;
-import android.provider.Settings;
+
 import android.util.Base64;
 import android.util.Log;
 import android.util.Rational;
@@ -56,9 +51,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 
 import us.zoom.sdk.IncomingLiveStreamStatus;
