@@ -50,6 +50,7 @@
                 android:configChanges="smallestScreenSize|screenSize|screenLayout|orientation"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             </activity>
+            <activity android:name="cordova.plugin.zoomvideo.ChatActivity" android:theme="@style/Theme.AppCompat.Light.NoActionBar" android:windowSoftInputMode="adjustResize" />
         </config-file>
 
         <resource-file src="src/android/res/drawable/ic_call_black_24dp.xml" target="res/drawable/ic_call_black_24dp.xml" />
@@ -85,6 +86,8 @@
         <resource-file src="src/android/res/layout/item_chat_message.xml" target="res/layout/item_chat_message.xml" />
         <resource-file src="src/android/res/layout/video_controls_layout.xml" target="res/layout/video_controls_layout.xml" />
         <resource-file src="src/android/res/layout/activity_attachment_viewer.xml" target="res/layout/activity_attachment_viewer.xml" />
+        <resource-file src="src/android/res/layout/activity_chat.xml" target="res/layout/activity_chat.xml" />
+        
       
         <resource-file src="src/android/res/values/twilio_colors.xml" target="res/values/twilio_colors.xml" />
         <resource-file src="src/android/res/values/colors.xml" target="res/values/colors.xml" />
@@ -98,6 +101,7 @@
         <resource-file src="src/android/res/values-w820dp/dimens.xml" target="res/values-w820dp/dimens.xml" />
 
         <source-file src="src/android/SessionActivity.java" target-dir="src/cordova/plugin/zoomvideo" />
+        <source-file src="src/android/ChatActivity.java" target-dir="src/cordova/plugin/zoomvideo" />
         <source-file src="src/android/ZoomVideo.java" target-dir="src/cordova/plugin/zoomvideo" />
         <source-file src="src/android/BottomSheetChat.java" target-dir="src/cordova/plugin/zoomvideo" />
         <source-file src="src/android/ChatAdapter.java" target-dir="src/cordova/plugin/zoomvideo" />
