@@ -145,34 +145,16 @@ public class ZoomVideo extends CordovaPlugin {
      * via the JavaScript bridge to display it.
      */
     public static void showDocumentPreview(String fileName, String mimeType, String binaryData) {
-        if (instance == null || instance.webView == null) {
-            Log.e("ZoomVideoPlugin", "Plugin not initialized, cannot show document preview.");
-            return;
-        }
+        SessionActivity activity = SessionActivity.getActiveInstance();
 
-        instance.cordova.getThreadPool().execute(() -> {
-            try {
-                File cacheDir = instance.cordova.getContext().getCacheDir();
-                File tempFile = new File(cacheDir, fileName);
-
-                byte[] fileData = Base64.decode(binaryData, Base64.DEFAULT);
-                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                    fos.write(fileData);
-                }
-                String filePath = tempFile.getAbsolutePath();
-
-                final String js = "cordova.plugins.fileViewer.open('" + filePath + "', '" + mimeType + "', { "
-                        + "onClose: function() { console.log('File viewer closed'); } "
-                        + "});";
-
-                instance.cordova.getActivity().runOnUiThread(() -> {
-                    instance.webView.loadUrl("javascript:" + js);
-                });
-
-            } catch (IOException e) {
-                Log.e("ZoomVideoPlugin", "Failed to create temp file for viewer.", e);
-            }
-        });
+//        if (activity != null) {
+//            // Run the UI operation on the main thread of that activity
+//            activity.runOnUiThread(() -> {
+//                activity.showAttachmentViewer(fileName, mimeType, binaryData);
+//            });
+//        } else {
+//            Log.e("ZoomVideoPlugin", "SessionActivity is not active, cannot show document preview.");
+//        }
     }
 
     // --- Other Plugin Methods (UNCHANGED) ---
