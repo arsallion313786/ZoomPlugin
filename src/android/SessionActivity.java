@@ -1,5 +1,7 @@
 package cordova.plugin.zoomvideo;
 
+
+
 import static android.os.Build.VERSION.SDK_INT;
 
 import android.Manifest;
@@ -14,6 +16,23 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+
+import androidx.annotation.NonNull;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AppCompatActivity;
+
+import androidx.appcompat.app.AlertDialog;
+
+
+
+import android.os.Handler;
+
+
+import android.util.Base64;
 import android.util.Log;
 import android.util.Rational;
 import android.view.Display;
@@ -23,19 +42,13 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 
 import us.zoom.sdk.*; // Using wildcard import for cleaner code with many SDK classes
 

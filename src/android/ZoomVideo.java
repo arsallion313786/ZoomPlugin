@@ -17,14 +17,12 @@ import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 // Note: us.zoom.sdk.ZoomVideoSDK import is removed as it's not used in this file,
 // but it's fine if your original file needs it for other reasons.
+
+
 
 public class ZoomVideo extends CordovaPlugin {
     // Callbacks for JS listeners
