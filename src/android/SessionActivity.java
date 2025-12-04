@@ -107,11 +107,13 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
     final String DRAWABLE = "drawable";
     final String ID = "id";
 
+    private final AtomicBoolean isActivityInForeground = new AtomicBoolean(false);
+
     private static SessionActivity instance;
 
     private String pendingAttachmentPath = null;
     private String pendingAttachmentMimeType = null;
-    private final AtomicBoolean isActivityInForeground = new AtomicBoolean(false);
+
 
 
     // Add this static getter method inside the SessionActivity class
@@ -286,6 +288,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
     @Override
     protected void onResume() {
         super.onResume();
+        isActivityInForeground.set(true); // Mark activity as in the foreground
         refreshLocalVideo(); // Also refresh on resume for max reliability
         if (ZoomVideoSDK.getInstance().isInSession()) {
             Display display = ((WindowManager) getSystemService(WINDOW_SERVICE)).getDefaultDisplay();
@@ -301,7 +304,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         if (handler != null && runnable != null) {
             handler.removeCallbacks(runnable);
         }
-        enterPipMode();
+        //enterPipMode();
     }
 
     @Override
@@ -311,6 +314,14 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
         unregisterReceiver(headsetReceiver);
     }
+
+    @Override
+    public void onUserLeaveHint() {
+        // This is the primary trigger for automatic PiP when the user presses "Home".
+        enterPipMode();
+        super.onUserLeaveHint();
+    }
+
 
     @Override
     protected void onDestroy() {
@@ -565,14 +576,36 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         }
     }
 
-    private void enterPipMode() {
-        if (SDK_INT >= Build.VERSION_CODES.O && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) && ZoomVideoSDK.getInstance().isInSession()) {
-            Rational aspectRatio = new Rational(9, 16);
-            PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder();
-            pipBuilder.setAspectRatio(aspectRatio);
-            enterPictureInPictureMode(pipBuilder.build());
-        }
+//    private void enterPipMode() {
+//        if (SDK_INT >= Build.VERSION_CODES.O && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) && ZoomVideoSDK.getInstance().isInSession()) {
+//            Rational aspectRatio = new Rational(9, 16);
+//            PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder();
+//            pipBuilder.setAspectRatio(aspectRatio);
+//            enterPictureInPictureMode(pipBuilder.build());
+//        }
+//    }
+private void enterPipMode() {
+    if (SDK_INT >= Build.VERSION_CODES.O && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) && ZoomVideoSDK.getInstance().isInSession()) {
+        Rational aspectRatio = new Rational(9, 16);
+        PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder();
+        pipBuilder.setAspectRatio(aspectRatio);
+        enterPictureInPictureMode(pipBuilder.build());
     }
+}
+//    private void enterPipMode() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+//                getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
+//                ZoomVideoSDK.getInstance().isInSession()) {
+//
+//            Rational aspectRatio = new Rational(9, 16);
+//            PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder();
+//            pipBuilder.setAspectRatio(aspectRatio);
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//                pipBuilder.setAutoEnterEnabled(true);
+//            }
+//            enterPictureInPictureMode(pipBuilder.build());
+//        }
+//    }
 
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, @NonNull Configuration newConfig) {
