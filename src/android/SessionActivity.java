@@ -43,6 +43,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -482,7 +486,36 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
     public void onChatNewMessageNotify(ZoomVideoSDKChatHelper chatHelper, ZoomVideoSDKChatMessage messageItem) {
         String content = messageItem.getContent();
         String senderName = messageItem.getSenderUser().getUserName();
-        runOnUiThread(() -> chatMessages.add(new ChatMessage(senderName, content)));
+        String fileName;
+        String mimType;
+        String documentId;
+        boolean isAttachmentMessage;
+        if (content.contains("https://fileupload.bupa.com.sa")) {
+            content = content.replace(" ", "").replace("\n", "");
+            String[] parts = content.split("#");
+            isAttachmentMessage = true;
+            documentId = parts[1];
+            fileName = parts[2];
+            mimType = parts[3];
+
+            JSONObject filedata = new JSONObject();
+            try {
+                filedata.put("documentId", parts[1]);
+                filedata.put("fileName", parts[2]);
+                filedata.put("fileMimetype", parts[3]);
+            } catch (JSONException e) {
+                Log.e("ChatAdapter", "Error parsing file URL", e);
+            }
+        } else {
+            fileName = null;
+            mimType = null;
+            documentId = null;
+            isAttachmentMessage = false;
+        }
+
+
+        String finalContent = content;
+        runOnUiThread(() -> chatMessages.add(new ChatMessage(senderName, finalContent, isAttachmentMessage, documentId, mimType, fileName, false )));
         Intent intent = new Intent("new-chat-message");
         intent.putExtra("senderName", senderName);
         intent.putExtra("content", content);
