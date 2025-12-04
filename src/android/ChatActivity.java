@@ -1,6 +1,7 @@
 package cordova.plugin.zoomvideo;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
@@ -83,9 +84,52 @@ public class ChatActivity extends AppCompatActivity {
                 String senderName = intent.getStringExtra("senderName");
                 String content = intent.getStringExtra("content");
 
-                if (senderName != null && content != null) {
-                    addMessageToChat(new ChatMessage(senderName, content));
+                String fileName;
+                String mimType;
+                String documentId;
+                boolean isAttachmentMessage;
+                assert content != null;
+                if (content.contains("https://fileupload.bupa.com.sa")) {
+                    content = content.replace(" ", "").replace("\n", "");
+                    String[] parts = content.split("#");
+                    isAttachmentMessage = true;
+                    documentId = parts[1];
+                    fileName = parts[2];
+                    mimType = parts[3];
+
+                    boolean isDataFind = false;
+
+
+                    for (int i = 0; i < chatMessages.size(); i++) {
+                        ChatMessage msg = chatMessages.get(i);
+                        if (msg.getIsAttachment() && msg.getIsUploading() && fileName.equals(msg.getFileName())) {
+                            // Found the placeholder message, now update it.
+                            msg.updateAttachmentDetails(documentId, mimType);
+                            isDataFind = true;
+                            // Notify the adapter that this specific item has changed.
+                            final int finalI = i;
+                            runOnUiThread(() -> chatAdapter.notifyItemChanged(finalI));
+
+                            return; // Exit the loop once updated
+                        }
+                    }
+
+                    if (!isDataFind && senderName != null) {
+                        addMessageToChat(new ChatMessage(senderName, content, true, documentId, mimType, fileName, false));
+                    }
+
+
+                } else {
+                    fileName = null;
+                    mimType = null;
+                    documentId = null;
+                    isAttachmentMessage = false;
+                    if (senderName != null) {
+                        addMessageToChat(new ChatMessage(senderName, content, isAttachmentMessage, documentId, mimType, fileName, false ));
+                    }
                 }
+
+
             }
         }
     };
@@ -161,7 +205,7 @@ public class ChatActivity extends AppCompatActivity {
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         try {
             startActivityForResult(Intent.createChooser(intent, "Select a File"), FILE_SELECT_CODE);
-        } catch (android.content.ActivityNotFoundException ex) {
+        } catch (ActivityNotFoundException ex) {
             // Handle case where no file picker is available
             Log.e("ChatActivity", "No file picker found on device.", ex);
         }
@@ -208,7 +252,9 @@ public class ChatActivity extends AppCompatActivity {
 
         // We call back to the main Cordova plugin to handle the file viewer.
         // This logic remains correct.
-        //ZoomVideo.showDocumentPreview(fileName, mimeType, base64);
+        // ZoomVideo.showDocumentPreview(fileName, mimeType, base64);
+
+
 
         // This is where you send the file for upload
         try {
@@ -217,6 +263,8 @@ public class ChatActivity extends AppCompatActivity {
             filedata.put("fileName", fileName);
             filedata.put("fileMimetype", mimeType);
             ZoomVideo.registerFileUploadListener(filedata);
+            addMessageToChat(new ChatMessage("Me", "View Attachment", true, null, mimeType, fileName, true ));
+
         } catch (JSONException e) {
             Log.e("ChatActivity", "Error creating JSON for file upload", e);
         }

@@ -66,7 +66,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
             holder.attachmentLayout.setVisibility(View.VISIBLE);
 
             // 2. Set the file name on the "View Attachment" link and underline it
-            SpannableString fileNameSpannable = new SpannableString(chatMessage.getMessage());
+            SpannableString fileNameSpannable = new SpannableString("View Attachment");
             fileNameSpannable.setSpan(new UnderlineSpan(), 0, fileNameSpannable.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             holder.attachmentTextView.setText(fileNameSpannable);
 
