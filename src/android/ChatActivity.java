@@ -102,7 +102,11 @@ public class ChatActivity extends AppCompatActivity {
 
                     for (int i = 0; i < chatMessages.size(); i++) {
                         ChatMessage msg = chatMessages.get(i);
-                        if (msg.getIsAttachment() && msg.getIsUploading() && fileName.contains(msg.getFileName()) && msg.getAttachmentId() == null) {
+                        if (
+                                msg.getIsAttachment() &&
+                                        msg.getIsUploading() &&
+                                        fileName.contains(msg.getFileName()) && // here I user contain because wen we upload file Server append time with original file name
+                                        msg.getAttachmentId() == null) {
                             // Found the placeholder message, now update it.
                             msg.updateAttachmentDetails(documentId, mimType);
                             isDataFind = true;
