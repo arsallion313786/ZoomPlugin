@@ -38,6 +38,7 @@ public class ChatMessage implements Serializable {
         this.attachmentId = attachmentId;
         this.mimType = mimType;
         this.isUploading = false; // Mark the upload as complete
+        this.message = "View Attachment"; // Update the message to reflect the attachment
     }
 
 

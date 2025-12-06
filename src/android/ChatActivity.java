@@ -64,7 +64,7 @@ public class ChatActivity extends AppCompatActivity {
     private RelativeLayout rootLayout; // The root layout of your activity
 
 
-    private BroadcastReceiver messageReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver messageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -102,7 +102,7 @@ public class ChatActivity extends AppCompatActivity {
 
                     for (int i = 0; i < chatMessages.size(); i++) {
                         ChatMessage msg = chatMessages.get(i);
-                        if (msg.getIsAttachment() && msg.getIsUploading() && fileName.equals(msg.getFileName())) {
+                        if (msg.getIsAttachment() && msg.getIsUploading() && fileName.contains(msg.getFileName()) && msg.getAttachmentId() == null) {
                             // Found the placeholder message, now update it.
                             msg.updateAttachmentDetails(documentId, mimType);
                             isDataFind = true;
@@ -260,7 +260,7 @@ public class ChatActivity extends AppCompatActivity {
         try {
             JSONObject filedata = new JSONObject();
             filedata.put("base64", base64);
-            filedata.put("fileName", fileName);
+            filedata.put("fileName", fileName.replace(" ", ""));
             filedata.put("fileMimetype", mimeType);
             ZoomVideo.registerFileUploadListener(filedata);
             addMessageToChat(new ChatMessage("Me", "View Attachment", true, null, mimeType, fileName, true ));
