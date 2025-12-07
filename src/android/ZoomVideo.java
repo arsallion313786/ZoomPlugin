@@ -19,6 +19,8 @@ import android.widget.Toast;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import us.zoom.sdk.ZoomVideoSDK;
+
 // Note: us.zoom.sdk.ZoomVideoSDK import is removed as it's not used in this file,
 // but it's fine if your original file needs it for other reasons.
 
@@ -168,7 +170,9 @@ public class ZoomVideo extends CordovaPlugin {
     }
 
     private void openSession(final JSONArray args) {
-        try {
+
+
+        if (!ZoomVideoSDK.getInstance().isInSession()) try {
             this.jwtToken = args.getString(0);
             this.sessionName = args.getString(1);
             this.userName = args.getString(2);
@@ -191,6 +195,16 @@ public class ZoomVideo extends CordovaPlugin {
             LOG.e("ZoomVideo", "Invalid JSON string for openSession: ", e);
             callbackContext.error("Invalid JSON arguments for openSession.");
         }
+        else{
+           if(SessionActivity.getActiveInstance() != null){
+               SessionActivity.getActiveInstance().returnToFullScreen();
+           }
+           else{
+               cordova.getActivity().runOnUiThread(() -> Toast.makeText(cordova.getActivity(), "You are already in another call", Toast.LENGTH_LONG).show());
+           }
+        }
+
+
     }
 
     public static void registerDownloadFileListener(JSONObject fileData) {
