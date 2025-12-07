@@ -651,7 +651,7 @@ extension ConsulationMeetingVC:ZoomVideoSDKDelegate{
         
         
         if let user = userArray?.first as? ZoomVideoSDKUser{
-            self.setDesignationName(user: user);
+           // self.setDesignationName(user: user);
             self.lblWaitingMsg.isHidden = true;
             self.setUserFullScreenCanvas(user: user, type: .videoData);
             if let name =  user.getName(){
