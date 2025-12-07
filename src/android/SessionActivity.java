@@ -19,7 +19,7 @@ import android.os.Handler;
 
 import androidx.annotation.NonNull;
 
-import com.example.hello.MainActivity;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import androidx.annotation.Nullable;
@@ -244,6 +244,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         specialityDoctorTextView = findViewById(getResourceId(this, ID, "specialityDoctor"));
         NameDoctorTextView = findViewById(getResourceId(this, ID, "NameDoctor"));
 
+        specialityDoctorTextView.setVisibility(View.GONE);
         videoControls.setVisibility(View.GONE);
         switchCameraActionFab.setVisibility(View.GONE);
     }
@@ -301,26 +302,26 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
     private void showChatActivity() {
 
-        Intent mainActivityIntent = new Intent(this, MainActivity.class);
-        mainActivityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//        Intent mainActivityIntent = new Intent(this, MainActivity.class);
+//        mainActivityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//
+//        // 3. Create the Intent for the ChatActivity.
+//        Intent chatIntent = new Intent(this, ChatActivity.class);
+//        chatIntent.putExtra("chat_history", (Serializable) chatMessages);
+//
+//        // 4. Use TaskStackBuilder to create a new, correct navigation stack in your main app task.
+//        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+//        stackBuilder.addNextIntent(mainActivityIntent);
+//        stackBuilder.addNextIntent(chatIntent);
+//
+//        // 5. Start the activities. This launches the MainActivity and then ChatActivity on top of it.
+//        stackBuilder.startActivities();
 
-        // 3. Create the Intent for the ChatActivity.
-        Intent chatIntent = new Intent(this, ChatActivity.class);
-        chatIntent.putExtra("chat_history", (Serializable) chatMessages);
-
-        // 4. Use TaskStackBuilder to create a new, correct navigation stack in your main app task.
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addNextIntent(mainActivityIntent);
-        stackBuilder.addNextIntent(chatIntent);
-
-        // 5. Start the activities. This launches the MainActivity and then ChatActivity on top of it.
-        stackBuilder.startActivities();
 
 
-
-//        Intent intent = new Intent(SessionActivity.this, ChatActivity.class);
-//        intent.putExtra("chat_history", (Serializable) chatMessages);
-//        startActivity(intent);
+        Intent intent = new Intent(SessionActivity.this, ChatActivity.class);
+        intent.putExtra("chat_history", (Serializable) chatMessages);
+        startActivity(intent);
     }
 
     // Add this new method to SessionActivity.java
@@ -497,7 +498,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
                 this.primaryUserSpeciality = user.isHost() ? "Practitioner/Doctor" : "";
                 this.waitingMessageTextView.setVisibility(View.GONE);
                 this.NameDoctorTextView.setText(user.getUserName());
-                this.specialityDoctorTextView.setText(this.primaryUserSpeciality);
+               // this.specialityDoctorTextView.setText(this.primaryUserSpeciality);
                 user.getVideoCanvas().subscribe(this.primaryVideoView, ZoomVideoSDKVideoAspect.ZoomVideoSDKVideoAspect_PanAndScan);
             } else if (this.secondaryThumbnailUser == null) {
                 this.secondaryThumbnailVideoView.setVisibility(View.VISIBLE);
@@ -747,7 +748,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
             videoControls.setVisibility(View.VISIBLE);
             timerTextView.setVisibility(View.VISIBLE);
             NameDoctorTextView.setVisibility(View.VISIBLE);
-            specialityDoctorTextView.setVisibility(View.VISIBLE);
+           // specialityDoctorTextView.setVisibility(View.VISIBLE);
             chatActionFab.setVisibility(View.VISIBLE);
 
             // Restore visibility of video views
