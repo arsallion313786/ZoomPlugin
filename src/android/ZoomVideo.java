@@ -11,15 +11,25 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.content.Intent;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.core.content.FileProvider;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
 import us.zoom.sdk.ZoomVideoSDK;
+
+
 
 // Note: us.zoom.sdk.ZoomVideoSDK import is removed as it's not used in this file,
 // but it's fine if your original file needs it for other reasons.
@@ -28,6 +38,8 @@ import us.zoom.sdk.ZoomVideoSDK;
 
 public class ZoomVideo extends CordovaPlugin {
     // Callbacks for JS listeners
+
+    private static final int CHAT_ACTIVITY_REQUEST_CODE = 102;
     private CallbackContext callbackContext;
     private static CallbackContext fileUploadCallbackContext;
     private static CallbackContext sendDocumentMetaDataContext;
@@ -35,7 +47,7 @@ public class ZoomVideo extends CordovaPlugin {
     private static CallbackContext sendFileDataContext;
 
     // Static instance for access from other classes (like ChatActivity)
-    private static ZoomVideo instance;
+    public static ZoomVideo instance;
 
     // Member variables for state
     private String jwtToken;
@@ -146,6 +158,7 @@ public class ZoomVideo extends CordovaPlugin {
      */
     public static void showDocumentPreview(String fileName, String mimeType, String binaryData) {
         SessionActivity activity = SessionActivity.getActiveInstance();
+        activity.openDocumentFromBase64(binaryData, fileName, mimeType);
 
 //        if (activity != null) {
 //            // Run the UI operation on the main thread of that activity
@@ -157,6 +170,8 @@ public class ZoomVideo extends CordovaPlugin {
 //        }
     }
 
+
+
     // --- Other Plugin Methods (UNCHANGED) ---
 
     public void HandleSuccessErrorMessage(final JSONArray args) {
@@ -167,6 +182,14 @@ public class ZoomVideo extends CordovaPlugin {
             // It's better to log the error than to crash the app
             Log.e("ZoomVideo", "Error processing toast message arguments.", e);
         }
+    }
+
+   public void showChatActivity(List<ChatMessage> chatMessages) {
+       ZoomVideo.instance.cordova.getThreadPool().execute(() -> {
+           Intent intent = new Intent(ZoomVideo.instance.cordova.getContext(), ChatActivity.class);
+           intent.putExtra("chat_history", (Serializable) chatMessages);
+           ZoomVideo.instance.cordova.startActivityForResult(ZoomVideo.instance, intent, CHAT_ACTIVITY_REQUEST_CODE);
+       });
     }
 
     private void openSession(final JSONArray args) {
@@ -189,7 +212,7 @@ public class ZoomVideo extends CordovaPlugin {
                 intentZoomVideo.putExtra("domain", domain);
                 intentZoomVideo.putExtra("waitingMessage", waitingMessage);
                 intentZoomVideo.putExtra("primaryUserSpeciality", primaryUserSpeciality);
-                that.cordova.startActivityForResult(that, intentZoomVideo, 0);
+               cordova.startActivityForResult(that, intentZoomVideo, 0);
             });
         } catch (JSONException e) {
             LOG.e("ZoomVideo", "Invalid JSON string for openSession: ", e);

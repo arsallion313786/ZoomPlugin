@@ -17,6 +17,18 @@
             </feature>
         </config-file>
         
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+               <provider
+                   android:name="cordova.plugin.zoomvideo.ZoomFileProvider"
+                   android:authorities="${applicationId}.zoom.provider"
+                   android:exported="false"
+                   android:grantUriPermissions="true">
+                   <meta-data
+                       android:name="android.support.FILE_PROVIDER_PATHS"
+                       android:resource="@xml/zoom_file_provider_paths" />
+               </provider>
+           </config-file>
+        
 <!--        <config-file target="AndroidManifest.xml" parent="/manifest">-->
 <!--                <uses-sdk android:minSdkVersion="28" />-->
 <!--            </config-file>-->
@@ -109,6 +121,8 @@
         <source-file src="src/android/ChatAdapter.java" target-dir="src/cordova/plugin/zoomvideo" />
         <source-file src="src/android/ChatMessage.java" target-dir="src/cordova/plugin/zoomvideo" />
         <source-file src="src/android/AttachmentViewerDialogFragment.java" target-dir="src/cordova/plugin/zoomvideo" />
+        <source-file src="src/android/ZoomFileProvider.java" target-dir="src/cordova/plugin/zoomvideo" />
+        <source-file src="src/android/xml/zoom_file_provider_paths.xml" target-dir="res/xml"/>
 <!--        <source-file src="src/android/proguard-rules.pro" target-dir="" />-->
 <!--        //-->
         

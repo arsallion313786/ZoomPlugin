@@ -13,11 +13,13 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 
 import androidx.annotation.NonNull;
+
 
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -45,7 +47,12 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.content.FileProvider;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -302,6 +309,13 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 
     private void showChatActivity() {
 
+        //ZoomVideo.instance.showChatActivity(this.chatMessages);
+
+        // 1. Manually trigger PiP mode. This is ESSENTIAL because onUserLeaveHint() will not be called.
+//        enterPipMode();
+//
+//        // 2. Create an Intent for the MainActivity (your main Cordova activity).
+//        // This brings your original app task to the front.
 //        Intent mainActivityIntent = new Intent(this, MainActivity.class);
 //        mainActivityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 //
@@ -309,7 +323,8 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 //        Intent chatIntent = new Intent(this, ChatActivity.class);
 //        chatIntent.putExtra("chat_history", (Serializable) chatMessages);
 //
-//        // 4. Use TaskStackBuilder to create a new, correct navigation stack in your main app task.
+//        // 4. Use TaskStackBuilder to create a new navigation stack in your main app's task.
+//        // This ensures that when the user presses "back", they navigate correctly within your main app.
 //        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
 //        stackBuilder.addNextIntent(mainActivityIntent);
 //        stackBuilder.addNextIntent(chatIntent);
@@ -317,11 +332,15 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 //        // 5. Start the activities. This launches the MainActivity and then ChatActivity on top of it.
 //        stackBuilder.startActivities();
 
+//        ZoomVideo.instance.cordova.getThreadPool().execute(() -> {
+//            Intent intent = new Intent(ZoomVideo.instance.cordova.getContext(), ChatActivity.class);
+//            intent.putExtra("chat_history", (Serializable) chatMessages);
+//            ZoomVideo.instance.cordova.startActivityForResult(ZoomVideo.instance, intent, CHAT_ACTIVITY_REQUEST_CODE);
+//        });
 
-
-        Intent intent = new Intent(SessionActivity.this, ChatActivity.class);
+        Intent intent = new Intent(this, ChatActivity.class);
         intent.putExtra("chat_history", (Serializable) chatMessages);
-        startActivity(intent);
+        this.startActivity(intent);
     }
 
     // Add this new method to SessionActivity.java
@@ -402,6 +421,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         // *** THIS IS THE FIX: Remove the delegate here. ***
         LocalBroadcastManager.getInstance(this).unregisterReceiver(returnToFullScreenReceiver);
         unregisterReceiver(headsetReceiver);
+        finish();
     }
 
     @Override
@@ -411,10 +431,66 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         super.onUserLeaveHint();
     }
 
+    public void openDocumentFromBase64(String base64Data, String fileName, String mimeType) {
+        if (base64Data == null || base64Data.isEmpty() || fileName == null || mimeType == null) {
+            Log.e("FileViewer", "Invalid arguments provided to openDocumentFromBase64.");
+            // Optionally show an error Toast to the user
+            // Toast.makeText(this, "Cannot open file: Invalid data.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            // 1. Decode the Base64 string into a byte array.
+            byte[] fileAsBytes = Base64.decode(base64Data, Base64.DEFAULT);
+
+            // 2. Create a temporary file in the app's cache directory.
+            File tempFile = new File(getCacheDir(), fileName);
+
+            // 3. Write the byte array to the temporary file.
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(fileAsBytes);
+            }
+
+            // 4. Get the secure content URI for the file using the FileProvider.
+            //    The authority must match exactly what you defined in AndroidManifest.xml.
+            Uri contentUri = FileProvider.getUriForFile(
+                    this,
+                    getPackageName() + ".zoom.provider",
+                    tempFile
+            );
+
+            // 5. Create a new Intent to view the content.
+            Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+            viewIntent.setDataAndType(contentUri, mimeType);
+
+            // 6. Grant temporary read permission to the app that will handle the intent.
+            //    This is the most critical part for security and functionality.
+            viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            //    Optional: This flag prevents the viewer app from being in the back stack history.
+            viewIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+
+            // 7. Start the activity. The Android system will find an app to open the file.
+            startActivity(viewIntent);
+
+        } catch (Exception e) {
+            Log.e("FileViewer", "Error opening file from Base64 string.", e);
+            // This catch block will handle errors like:
+            // - No app installed that can view the file type.
+            // - FileProvider not configured correctly.
+            // - Issues writing the temporary file.
+            // Toast.makeText(this, "Error: Could not open file.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        Intent intent = new Intent("com.zoom.plugin.CLOSE_CHAT_ACTIVITY");
+
+        // 2. Send the broadcast. This message will be received by the ChatActivity.
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
         if (ZoomVideoSDK.getInstance().isInSession()) {
             if (this.secondaryThumbnailUser != null) this.secondaryThumbnailUser.getVideoCanvas().unSubscribe(this.secondaryThumbnailVideoView);
             if (this.thumbnailUser != null) this.thumbnailUser.getVideoCanvas().unSubscribe(this.thumbnailVideoView);
