@@ -19,9 +19,12 @@ import android.os.Handler;
 
 import androidx.annotation.NonNull;
 
+import com.example.hello.MainActivity;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.TaskStackBuilder;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -55,6 +58,8 @@ import us.zoom.sdk.*; // Using wildcard import for cleaner code with many SDK cl
 public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDelegate {
 
     private static final int CAMERA_MIC_PERMISSION_REQUEST_CODE = 1;
+
+    private static final int CHAT_ACTIVITY_REQUEST_CODE = 101;
 
     // Session parameters
     private String jwtToken;
@@ -137,6 +142,21 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         }
     };
 
+
+    private BroadcastReceiver returnToFullScreenReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if ("com.zoom.plugin.RETURN_TO_FULL_SCREEN".equals(action)) {
+                // When we receive the message, call the returnToFullScreen() method.
+                Log.d("SessionActivity", "Received broadcast to return to full screen.");
+                returnToFullScreen();
+            }
+        }
+    };
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -192,6 +212,19 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         this.primaryUserSpeciality = intent.getStringExtra("primaryUserSpeciality");
         waitingMessageTextView.setText(this.startingWaitingMessage);
     }
+
+    // Add this helper method inside SessionActivity.java
+
+    private ZoomVideoSDKVideoView getPipTargetView() {
+        // Priority 1: The primary user (usually the remote user) if they have video.
+        if (primaryUser != null && primaryUser.getVideoCanvas().getVideoStatus().isOn()) {
+            return primaryVideoView;
+        }
+        // Priority 2: Your own local video view, as a fallback.
+        // We use thumbnailVideoView as it's your designated local preview.
+        return thumbnailVideoView;
+    }
+
 
     private void initializeViews() {
         progressBar = findViewById(getResourceId(this, ID, "progressBar"));
@@ -267,16 +300,71 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
     }
 
     private void showChatActivity() {
-        Intent intent = new Intent(SessionActivity.this, ChatActivity.class);
-        intent.putExtra("chat_history", (Serializable) chatMessages);
-        startActivity(intent);
+
+        Intent mainActivityIntent = new Intent(this, MainActivity.class);
+        mainActivityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        // 3. Create the Intent for the ChatActivity.
+        Intent chatIntent = new Intent(this, ChatActivity.class);
+        chatIntent.putExtra("chat_history", (Serializable) chatMessages);
+
+        // 4. Use TaskStackBuilder to create a new, correct navigation stack in your main app task.
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addNextIntent(mainActivityIntent);
+        stackBuilder.addNextIntent(chatIntent);
+
+        // 5. Start the activities. This launches the MainActivity and then ChatActivity on top of it.
+        stackBuilder.startActivities();
+
+
+
+//        Intent intent = new Intent(SessionActivity.this, ChatActivity.class);
+//        intent.putExtra("chat_history", (Serializable) chatMessages);
+//        startActivity(intent);
     }
+
+    // Add this new method to SessionActivity.java
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Check if this is the result from our chat activity
+        if (requestCode == CHAT_ACTIVITY_REQUEST_CODE) {
+            // The chat activity has been closed.
+            // Now, bring the video call back to full screen.
+            Log.d("PiP", "Chat activity closed, returning to full screen.");
+            returnToFullScreen();
+        }
+    }
+
+    // Add this method to SessionActivity.java if it's not already there
+
+    /**
+     * Programmatically brings the app out of Picture-in-Picture mode
+     * and back to the full-screen SessionActivity.
+     */
+    public void returnToFullScreen() {
+        // Check if the activity is actually in PiP mode.
+        if (isInPictureInPictureMode()) {
+            // Create an Intent to bring the activity to the front.
+            Intent intent = new Intent(this, SessionActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
+        }
+    }
+
+
 
     // ----------------- LIFECYCLE & PERMISSION METHODS -----------------
 
     @Override
     protected void onStart() {
         super.onStart();
+
+        IntentFilter filter1 = new IntentFilter("com.zoom.plugin.RETURN_TO_FULL_SCREEN");
+        LocalBroadcastManager.getInstance(this).registerReceiver(returnToFullScreenReceiver, filter1);
+
         // *** THIS IS THE FIX: Add the delegate back here. ***
         ZoomVideoSDK.getInstance().addListener(this);
 
@@ -311,7 +399,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
     protected void onStop() {
         super.onStop();
         // *** THIS IS THE FIX: Remove the delegate here. ***
-
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(returnToFullScreenReceiver);
         unregisterReceiver(headsetReceiver);
     }
 
@@ -584,34 +672,95 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
 //            enterPictureInPictureMode(pipBuilder.build());
 //        }
 //    }
-private void enterPipMode() {
-    if (SDK_INT >= Build.VERSION_CODES.O && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) && ZoomVideoSDK.getInstance().isInSession()) {
-        Rational aspectRatio = new Rational(9, 16);
-        PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder();
-        pipBuilder.setAspectRatio(aspectRatio);
-        enterPictureInPictureMode(pipBuilder.build());
-    }
-}
-//    private void enterPipMode() {
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-//                getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
-//                ZoomVideoSDK.getInstance().isInSession()) {
-//
-//            Rational aspectRatio = new Rational(9, 16);
-//            PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder();
-//            pipBuilder.setAspectRatio(aspectRatio);
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-//                pipBuilder.setAutoEnterEnabled(true);
-//            }
-//            enterPictureInPictureMode(pipBuilder.build());
-//        }
+//private void enterPipMode() {
+//    if (SDK_INT >= Build.VERSION_CODES.O && getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) && ZoomVideoSDK.getInstance().isInSession()) {
+//        Rational aspectRatio = new Rational(9, 16);
+//        PictureInPictureParams.Builder pipBuilder = new PictureInPictureParams.Builder();
+//        pipBuilder.setAspectRatio(aspectRatio);
+//        enterPictureInPictureMode(pipBuilder.build());
 //    }
+//}
+
+
+    private void enterPipMode() {
+        // --- THIS IS THE KEY CHANGE ---
+        // Dynamically select the best view for PiP.
+        ZoomVideoSDKVideoView pipView = getPipTargetView();
+
+        if (pipView == null) {
+            // If no suitable view is found, don't enter PiP mode.
+            return;
+        }
+
+        // Get the location of the selected view on the screen.
+        int[] location = new int[2];
+        pipView.getLocationInWindow(location);
+        int width = pipView.getWidth();
+        int height = pipView.getHeight();
+        android.graphics.Rect sourceRectHint = new android.graphics.Rect(location[0], location[1], location[0] + width, location[1] + height);
+
+        // Use the aspect ratio of the selected view.
+        Rational aspectRatio = new Rational(width, height);
+
+        PictureInPictureParams.Builder builder = new PictureInPictureParams.Builder()
+                .setAspectRatio(aspectRatio)
+                .setSourceRectHint(sourceRectHint);
+
+        // This line triggers the entry into PiP mode.
+        enterPictureInPictureMode(builder.build());
+    }
+
+//    @Override
+//    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, @NonNull Configuration newConfig) {
+//        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
+//        videoControls.setVisibility(isInPictureInPictureMode ? View.GONE : View.VISIBLE);
+//    }
+
+    // In SessionActivity.java
 
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, @NonNull Configuration newConfig) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
-        videoControls.setVisibility(isInPictureInPictureMode ? View.GONE : View.VISIBLE);
+
+        // This is the new, expanded logic
+        if (isInPictureInPictureMode) {
+            // --- App is ENTERING PiP mode: HIDE everything except the video views ---
+            videoControls.setVisibility(View.GONE);
+            timerTextView.setVisibility(View.GONE);
+            NameDoctorTextView.setVisibility(View.GONE);
+            specialityDoctorTextView.setVisibility(View.GONE);
+            waitingMessageTextView.setVisibility(View.GONE);
+            chatActionFab.setVisibility(View.GONE);
+
+            // Hide the local user's thumbnail if it's not the one being shown in PiP
+            if (getPipTargetView() != thumbnailVideoView) {
+                thumbnailVideoView.setVisibility(View.GONE);
+            }
+
+            // Hide the primary view if it's not the one being shown in PiP
+            if (getPipTargetView() != primaryVideoView) {
+                primaryVideoView.setVisibility(View.GONE);
+            }
+
+        } else {
+            // --- App is EXITING PiP mode: RESTORE the UI to its normal state ---
+            videoControls.setVisibility(View.VISIBLE);
+            timerTextView.setVisibility(View.VISIBLE);
+            NameDoctorTextView.setVisibility(View.VISIBLE);
+            specialityDoctorTextView.setVisibility(View.VISIBLE);
+            chatActionFab.setVisibility(View.VISIBLE);
+
+            // Restore visibility of video views
+            thumbnailVideoView.setVisibility(View.VISIBLE);
+            primaryVideoView.setVisibility(View.VISIBLE);
+
+            // Only show the "waiting" message if there is no primary user
+            if (primaryUser == null) {
+                waitingMessageTextView.setVisibility(View.VISIBLE);
+            }
+        }
     }
+
 
     // --- All other unused but required delegate overrides can be left empty ---
     @Override public void onSessionLeave() {}

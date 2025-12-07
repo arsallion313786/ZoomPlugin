@@ -115,7 +115,19 @@ public class ChatActivity extends AppCompatActivity {
 
 
         // Set listeners for the buttons
-        closeButton.setOnClickListener(v -> finish()); // Simply close the activity
+        closeButton.setOnClickListener(v -> {
+            // --- THIS IS THE FIX ---
+
+            // 1. Create an intent with a custom action.
+            // This is the message we will send back to the SessionActivity.
+            Intent intent = new Intent("com.zoom.plugin.RETURN_TO_FULL_SCREEN");
+
+            // 2. Send the broadcast. Any part of the app listening for this action will receive it.
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+
+            // 3. Now, finish the activity as before.
+            finish();
+        });
         uploadButton.setOnClickListener(v -> openFilePicker());
 
         sendButton.setOnClickListener(v -> {
