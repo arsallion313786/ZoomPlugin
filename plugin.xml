@@ -47,6 +47,8 @@
             <activity
                 android:name="cordova.plugin.zoomvideo.SessionActivity"
                 android:supportsPictureInPicture="true"
+                android:taskAffinity=".zoom_session"
+                android:launchMode="singleInstance"
                 android:configChanges="smallestScreenSize|screenSize|screenLayout|orientation"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             </activity>
