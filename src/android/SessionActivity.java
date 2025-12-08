@@ -421,12 +421,16 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
         // *** THIS IS THE FIX: Remove the delegate here. ***
         LocalBroadcastManager.getInstance(this).unregisterReceiver(returnToFullScreenReceiver);
         unregisterReceiver(headsetReceiver);
-        finish();
+        if(ZoomVideoSDK.getInstance().isInSession()){
+            finish();
+        }
+
     }
 
     @Override
     public void onUserLeaveHint() {
         // This is the primary trigger for automatic PiP when the user presses "Home".
+
         enterPipMode();
         super.onUserLeaveHint();
     }
@@ -467,7 +471,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
             //    This is the most critical part for security and functionality.
             viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             //    Optional: This flag prevents the viewer app from being in the back stack history.
-            //viewIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+            viewIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
 
             // 7. Start the activity. The Android system will find an app to open the file.
             startActivity(viewIntent);
@@ -762,29 +766,32 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
     private void enterPipMode() {
         // --- THIS IS THE KEY CHANGE ---
         // Dynamically select the best view for PiP.
-        ZoomVideoSDKVideoView pipView = getPipTargetView();
+        if(ZoomVideoSDK.getInstance().isInSession()){
+            ZoomVideoSDKVideoView pipView = getPipTargetView();
 
-        if (pipView == null) {
-            // If no suitable view is found, don't enter PiP mode.
-            return;
+            if (pipView == null) {
+                // If no suitable view is found, don't enter PiP mode.
+                return;
+            }
+
+            // Get the location of the selected view on the screen.
+            int[] location = new int[2];
+            pipView.getLocationInWindow(location);
+            int width = pipView.getWidth();
+            int height = pipView.getHeight();
+            android.graphics.Rect sourceRectHint = new android.graphics.Rect(location[0], location[1], location[0] + width, location[1] + height);
+
+            // Use the aspect ratio of the selected view.
+            Rational aspectRatio = new Rational(width, height);
+
+            PictureInPictureParams.Builder builder = new PictureInPictureParams.Builder()
+                    .setAspectRatio(aspectRatio)
+                    .setSourceRectHint(sourceRectHint);
+
+            // This line triggers the entry into PiP mode.
+            enterPictureInPictureMode(builder.build());
         }
 
-        // Get the location of the selected view on the screen.
-        int[] location = new int[2];
-        pipView.getLocationInWindow(location);
-        int width = pipView.getWidth();
-        int height = pipView.getHeight();
-        android.graphics.Rect sourceRectHint = new android.graphics.Rect(location[0], location[1], location[0] + width, location[1] + height);
-
-        // Use the aspect ratio of the selected view.
-        Rational aspectRatio = new Rational(width, height);
-
-        PictureInPictureParams.Builder builder = new PictureInPictureParams.Builder()
-                .setAspectRatio(aspectRatio)
-                .setSourceRectHint(sourceRectHint);
-
-        // This line triggers the entry into PiP mode.
-        enterPictureInPictureMode(builder.build());
     }
 
 //    @Override
