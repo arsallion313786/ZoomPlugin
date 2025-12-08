@@ -467,7 +467,7 @@ public class SessionActivity extends AppCompatActivity implements ZoomVideoSDKDe
             //    This is the most critical part for security and functionality.
             viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             //    Optional: This flag prevents the viewer app from being in the back stack history.
-            viewIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+            //viewIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
 
             // 7. Start the activity. The Android system will find an app to open the file.
             startActivity(viewIntent);
